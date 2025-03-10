@@ -81,14 +81,13 @@ class J03_ViaTransferSearchTest {
     var data = new TestTransitData();
 
     data.withRoutes(
-      route("R1")
-        .timetable(
-          """
-          A    B    C    D
-          0:02 0:10 0:20 0:30
-          0:12 0:20 0:30 0:40
-          """
-        )
+      route("R1").timetable(
+        """
+        A    B    C    D
+        0:02 0:10 0:20 0:30
+        0:12 0:20 0:30 0:40
+        """
+      )
     );
 
     var requestBuilder = prepareRequest();
@@ -97,8 +96,7 @@ class J03_ViaTransferSearchTest {
       .searchParams()
       .addAccessPaths(walk(STOP_A, D30s))
       .addViaLocation(
-        RaptorViaLocation
-          .via("B")
+        RaptorViaLocation.via("B")
           .addViaTransfer(STOP_B, TestTransfer.transfer(STOP_B, D1m))
           .build()
       )
@@ -115,21 +113,24 @@ class J03_ViaTransferSearchTest {
 
   @Test
   @DisplayName(
-    "Basic via search with just two routes. You should be forced use the provided via transfer " +
-    "even when a better regular transfer exist and an eariler depature could be reached. "
+    "Basic via search with just two routes. You should be forced to use the provided via transfer " +
+    "even when a better regular transfer exists and an earlier departure could be reached. "
   )
   void viaSearchArrivingByTransferAtViaStop() {
     var data = new TestTransitData();
 
     data.withRoutes(
-      route("R1", STOP_A, STOP_B, STOP_D).withTimetable("""
+      route("R1", STOP_A, STOP_B, STOP_D).withTimetable(
+        """
         0:02 0:10 0:12
-        """),
-      route("R2", STOP_C, STOP_D, STOP_E)
-        .withTimetable("""
+        """
+      ),
+      route("R2", STOP_C, STOP_D, STOP_E).withTimetable(
+        """
         0:10 0:13 0:15
         0:12 0:15 0:17
-        """)
+        """
+      )
     );
 
     var requestBuilder = prepareRequest();
@@ -155,17 +156,19 @@ class J03_ViaTransferSearchTest {
     "Via search with via transfer should force the usage of a route at the destination " +
     "avoiding using a via-transfer followed by a regular transfer."
   )
-  void viaTransferSearchNotFolloedByRegularTransfer() {
+  void viaTransferSearchNotFollowedByRegularTransfer() {
     var data = new TestTransitData();
 
     data
       .withRoutes(
         route("R1", STOP_A, STOP_B).withTimetable("0:02 0:10"),
         route("R2", STOP_C, STOP_D).withTimetable("0:12 0:15"),
-        route("R2", STOP_E, STOP_F).withTimetable("""
-        0:15 0:17
-        0:17 0:15
-        """)
+        route("R2", STOP_E, STOP_F).withTimetable(
+          """
+          0:15 0:17
+          0:17 0:15
+          """
+        )
       )
       .withTransfer(STOP_C, transfer(STOP_E, D1m))
       .withTransfer(STOP_D, transfer(STOP_E, D1m));
@@ -196,15 +199,14 @@ class J03_ViaTransferSearchTest {
     var data = new TestTransitData();
     data.withRoutes(
       route("R1", STOP_A, STOP_B).withTimetable("0:02:00 0:04:00"),
-      route("R2")
-        .timetable(
-          """
+      route("R2").timetable(
+        """
         B        C
         0:05:44  0:10
         0:05:45  0:11
         0:05:46  0:12
         """
-        )
+      )
     );
 
     var requestBuilder = prepareRequest();
@@ -215,8 +217,7 @@ class J03_ViaTransferSearchTest {
       .addAccessPaths(walk(STOP_A, D30s))
       .addViaLocations(
         List.of(
-          RaptorViaLocation
-            .via("B", minWaitTime)
+          RaptorViaLocation.via("B", minWaitTime)
             .addViaTransfer(STOP_B, transfer(STOP_B, D20s))
             .build()
         )

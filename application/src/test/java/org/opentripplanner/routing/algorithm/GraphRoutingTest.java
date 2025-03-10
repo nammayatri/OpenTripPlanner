@@ -228,8 +228,7 @@ public abstract class GraphRoutingTest {
 
     // -- Transit network (pathways, linking)
     public Entrance entranceEntity(String id, double latitude, double longitude) {
-      return Entrance
-        .of(TimetableRepositoryForTest.id(id))
+      return Entrance.of(TimetableRepositoryForTest.id(id))
         .withName(new NonLocalizedString(id))
         .withCode(id)
         .withCoordinate(latitude, longitude)
@@ -353,14 +352,9 @@ public abstract class GraphRoutingTest {
     }
 
     // -- Street linking
-    public TemporaryStreetLocation streetLocation(
-      String name,
-      double latitude,
-      double longitude,
-      boolean endVertex
-    ) {
+    public TemporaryStreetLocation streetLocation(String name, double latitude, double longitude) {
       var nearestPoint = new Coordinate(longitude, latitude);
-      return new TemporaryStreetLocation(name, nearestPoint, new NonLocalizedString(name));
+      return new TemporaryStreetLocation(nearestPoint, new NonLocalizedString(name));
     }
 
     public TemporaryFreeEdge link(TemporaryVertex from, StreetVertex to) {
@@ -450,8 +444,7 @@ public abstract class GraphRoutingTest {
       List<VehicleParkingEntranceCreator> entrances,
       String... tags
     ) {
-      var vehicleParking = VehicleParking
-        .builder()
+      var vehicleParking = VehicleParking.builder()
         .id(TimetableRepositoryForTest.id(id))
         .coordinate(new WgsCoordinate(y, x))
         .bicyclePlaces(bicyclePlaces)

@@ -3,7 +3,6 @@ package org.opentripplanner.updater.trip.siri;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
@@ -47,38 +46,34 @@ class ModifiedTripBuilderTest {
   private static final Station STATION_B = TEST_MODEL.station("B").build();
   private static final Station STATION_C = TEST_MODEL.station("C").build();
 
-  private static final RegularStop STOP_A_1 = TEST_MODEL
-    .stop("A_1")
+  private static final RegularStop STOP_A_1 = TEST_MODEL.stop("A_1")
     .withParentStation(STATION_A)
     .build();
-  private static final RegularStop STOP_A_2 = TEST_MODEL
-    .stop("A_2")
+  private static final RegularStop STOP_A_2 = TEST_MODEL.stop("A_2")
     .withParentStation(STATION_A)
     .build();
-  private static final RegularStop STOP_B_1 = TEST_MODEL
-    .stop("B_1")
+  private static final RegularStop STOP_B_1 = TEST_MODEL.stop("B_1")
     .withParentStation(STATION_B)
     .build();
-  private static final RegularStop STOP_C_1 = TEST_MODEL
-    .stop("C_1")
+  private static final RegularStop STOP_C_1 = TEST_MODEL.stop("C_1")
     .withParentStation(STATION_C)
     .build();
   private static final RegularStop STOP_D = TEST_MODEL.stop("D").build();
 
-  private static final Route ROUTE = TimetableRepositoryForTest
-    .route("ROUTE_ID")
+  private static final Route ROUTE = TimetableRepositoryForTest.route("ROUTE_ID")
     .withAgency(AGENCY)
     .build();
 
-  private static final TripPattern PATTERN = TimetableRepositoryForTest
-    .tripPattern("PATTERN_ID", ROUTE)
+  private static final TripPattern PATTERN = TimetableRepositoryForTest.tripPattern(
+    "PATTERN_ID",
+    ROUTE
+  )
     .withStopPattern(TimetableRepositoryForTest.stopPattern(STOP_A_1, STOP_B_1, STOP_C_1))
     .build();
 
   private static final FeedScopedId SERVICE_ID = TimetableRepositoryForTest.id("CAL_1");
 
-  private static final Trip TRIP = TimetableRepositoryForTest
-    .trip("TRIP")
+  private static final Trip TRIP = TimetableRepositoryForTest.trip("TRIP")
     .withRoute(ROUTE)
     .withServiceId(SERVICE_ID)
     .build();
@@ -119,8 +114,7 @@ class ModifiedTripBuilderTest {
   );
 
   private static final LocalDate SERVICE_DATE = LocalDate.of(2023, 2, 17);
-  private final SiteRepository siteRepository = TEST_MODEL
-    .siteRepositoryBuilder()
+  private final SiteRepository siteRepository = TEST_MODEL.siteRepositoryBuilder()
     .withRegularStop(STOP_A_1)
     .withRegularStop(STOP_A_2)
     .withRegularStop(STOP_B_1)
@@ -156,11 +150,10 @@ class ModifiedTripBuilderTest {
     timetableRepository.index();
 
     // Create the entity resolver only after the model has been indexed
-    entityResolver =
-      new EntityResolver(
-        new DefaultTransitService(timetableRepository),
-        TimetableRepositoryForTest.FEED_ID
-      );
+    entityResolver = new EntityResolver(
+      new DefaultTransitService(timetableRepository),
+      TimetableRepositoryForTest.FEED_ID
+    );
   }
 
   @Test
@@ -176,21 +169,10 @@ class ModifiedTripBuilderTest {
       null,
       false,
       "DATASOURCE"
-    )
-      .build();
+    ).build();
 
-    assertTrue(result.isSuccess(), "Update should succeed");
-
-    TripUpdate tripUpdate = result.successValue();
-    assertEquals(PATTERN.getStopPattern(), tripUpdate.stopPattern());
-    TripTimes updatedTimes = tripUpdate.tripTimes();
-    assertEquals(STOP_TIME_A_1.getArrivalTime(), updatedTimes.getArrivalTime(0));
-    assertEquals(STOP_TIME_A_1.getDepartureTime(), updatedTimes.getDepartureTime(0));
-    assertEquals(STOP_TIME_B_1.getArrivalTime(), updatedTimes.getArrivalTime(1));
-    assertEquals(STOP_TIME_B_1.getDepartureTime(), updatedTimes.getDepartureTime(1));
-    assertEquals(STOP_TIME_C_1.getArrivalTime(), updatedTimes.getArrivalTime(2));
-    assertEquals(STOP_TIME_C_1.getDepartureTime(), updatedTimes.getDepartureTime(2));
-    assertEquals(RealTimeState.UPDATED, updatedTimes.getRealTimeState());
+    assertTrue(result.isFailure());
+    assertEquals(UpdateError.UpdateErrorType.TOO_FEW_STOPS, result.failureValue().errorType());
   }
 
   @Test
@@ -201,13 +183,30 @@ class ModifiedTripBuilderTest {
       SERVICE_DATE,
       timetableRepository.getTimeZone(),
       entityResolver,
-      List.of(),
+      List.of(
+        TestCall.of()
+          .withStopPointRef(STOP_A_1.getId().getId())
+          .withAimedDepartureTime(zonedDateTime(10, 0))
+          .withExpectedDepartureTime(zonedDateTime(10, 1))
+          .build(),
+        TestCall.of()
+          .withStopPointRef(STOP_B_1.getId().getId())
+          .withAimedArrivalTime(zonedDateTime(10, 10))
+          .withExpectedArrivalTime(zonedDateTime(10, 11))
+          .withAimedDepartureTime(zonedDateTime(10, 12))
+          .withExpectedDepartureTime(zonedDateTime(10, 13))
+          .build(),
+        TestCall.of()
+          .withStopPointRef(STOP_C_1.getId().getId())
+          .withAimedArrivalTime(zonedDateTime(10, 20))
+          .withExpectedArrivalTime(zonedDateTime(10, 22))
+          .build()
+      ),
       true,
       null,
       false,
       "DATASOURCE"
-    )
-      .build();
+    ).build();
 
     assertTrue(result.isSuccess(), "Update should succeed");
 
@@ -226,22 +225,19 @@ class ModifiedTripBuilderTest {
       timetableRepository.getTimeZone(),
       entityResolver,
       List.of(
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_A_1.getId().getId())
           .withAimedDepartureTime(zonedDateTime(10, 0))
           .withExpectedDepartureTime(zonedDateTime(10, 1))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_B_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 10))
           .withExpectedArrivalTime(zonedDateTime(10, 11))
           .withAimedDepartureTime(zonedDateTime(10, 12))
           .withExpectedDepartureTime(zonedDateTime(10, 13))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_C_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 20))
           .withExpectedArrivalTime(zonedDateTime(10, 22))
@@ -251,8 +247,7 @@ class ModifiedTripBuilderTest {
       null,
       false,
       "DATASOURCE"
-    )
-      .build();
+    ).build();
 
     assertTrue(result.isSuccess(), "Update should succeed");
 
@@ -277,22 +272,19 @@ class ModifiedTripBuilderTest {
       timetableRepository.getTimeZone(),
       entityResolver,
       List.of(
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_A_1.getId().getId())
           .withAimedDepartureTime(zonedDateTime(10, 0))
           .withExpectedDepartureTime(zonedDateTime(10, 1))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_B_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 10))
           .withExpectedArrivalTime(zonedDateTime(10, 12))
           .withAimedDepartureTime(zonedDateTime(10, 12))
           .withExpectedDepartureTime(zonedDateTime(10, 10))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_C_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 20))
           .withExpectedArrivalTime(zonedDateTime(10, 22))
@@ -302,8 +294,7 @@ class ModifiedTripBuilderTest {
       null,
       false,
       "DATASOURCE"
-    )
-      .build();
+    ).build();
 
     assertFalse(result.isSuccess(), "Update should fail");
     UpdateError updateError = result.failureValue();
@@ -326,22 +317,19 @@ class ModifiedTripBuilderTest {
       timetableRepository.getTimeZone(),
       entityResolver,
       List.of(
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_A_1.getId().getId())
           .withAimedDepartureTime(zonedDateTime(10, 0))
           .withExpectedDepartureTime(zonedDateTime(9, 58))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_B_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 10))
           .withExpectedArrivalTime(zonedDateTime(10, 11))
           .withAimedDepartureTime(zonedDateTime(10, 12))
           .withExpectedDepartureTime(zonedDateTime(10, 13))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_C_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 20))
           .withExpectedArrivalTime(zonedDateTime(10, 22))
@@ -351,8 +339,7 @@ class ModifiedTripBuilderTest {
       null,
       false,
       "DATASOURCE"
-    )
-      .build();
+    ).build();
 
     assertTrue(result.isSuccess(), "Update should succeed");
 
@@ -377,22 +364,19 @@ class ModifiedTripBuilderTest {
       timetableRepository.getTimeZone(),
       entityResolver,
       List.of(
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_A_2.getId().getId())
           .withAimedDepartureTime(zonedDateTime(10, 0))
           .withExpectedDepartureTime(zonedDateTime(10, 1))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_B_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 10))
           .withExpectedArrivalTime(zonedDateTime(10, 11))
           .withAimedDepartureTime(zonedDateTime(10, 12))
           .withExpectedDepartureTime(zonedDateTime(10, 13))
           .build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_C_1.getId().getId())
           .withAimedArrivalTime(zonedDateTime(10, 20))
           .withExpectedArrivalTime(zonedDateTime(10, 22))
@@ -402,8 +386,7 @@ class ModifiedTripBuilderTest {
       null,
       false,
       "DATASOURCE"
-    )
-      .build();
+    ).build();
 
     assertTrue(result.isSuccess(), "Update should succeed");
 
@@ -425,132 +408,6 @@ class ModifiedTripBuilderTest {
   }
 
   @Test
-  void testUpdateCascading() {
-    var firstResult = new ModifiedTripBuilder(
-      TRIP_TIMES,
-      PATTERN,
-      SERVICE_DATE,
-      timetableRepository.getTimeZone(),
-      entityResolver,
-      List.of(
-        TestCall
-          .of()
-          .withStopPointRef(STOP_A_1.getId().getId())
-          .withAimedDepartureTime(zonedDateTime(10, 0))
-          .withExpectedDepartureTime(zonedDateTime(10, 1))
-          .withActualDepartureTime(zonedDateTime(10, 2))
-          .build(),
-        TestCall
-          .of()
-          .withStopPointRef(STOP_B_1.getId().getId())
-          .withAimedArrivalTime(zonedDateTime(10, 10))
-          .withExpectedArrivalTime(zonedDateTime(10, 11))
-          .withAimedDepartureTime(zonedDateTime(10, 12))
-          .withExpectedDepartureTime(zonedDateTime(10, 13))
-          .build(),
-        TestCall
-          .of()
-          .withStopPointRef(STOP_C_1.getId().getId())
-          .withAimedArrivalTime(zonedDateTime(10, 20))
-          .withExpectedArrivalTime(zonedDateTime(10, 22))
-          .build()
-      ),
-      false,
-      null,
-      false,
-      "DATASOURCE"
-    )
-      .build();
-
-    assertTrue(firstResult.isSuccess(), "Update should succeed");
-
-    TripTimes updatedTimes = firstResult.successValue().tripTimes();
-    assertEquals(secondsInDay(10, 2), updatedTimes.getArrivalTime(0));
-    assertEquals(secondsInDay(10, 2), updatedTimes.getDepartureTime(0));
-    assertTrue(updatedTimes.isRecordedStop(0));
-    assertEquals(secondsInDay(10, 11), updatedTimes.getArrivalTime(1));
-    assertEquals(secondsInDay(10, 13), updatedTimes.getDepartureTime(1));
-    assertFalse(updatedTimes.isRecordedStop(1));
-    assertEquals(secondsInDay(10, 22), updatedTimes.getArrivalTime(2));
-    assertEquals(secondsInDay(10, 22), updatedTimes.getDepartureTime(2));
-    assertFalse(updatedTimes.isRecordedStop(2));
-    assertEquals(RealTimeState.UPDATED, updatedTimes.getRealTimeState());
-
-    // Skip first stop, check that delay is carried over
-    var secondResult = new ModifiedTripBuilder(
-      firstResult.successValue().tripTimes(),
-      PATTERN,
-      SERVICE_DATE,
-      timetableRepository.getTimeZone(),
-      entityResolver,
-      List.of(
-        TestCall
-          .of()
-          .withStopPointRef(STOP_B_1.getId().getId())
-          .withAimedArrivalTime(zonedDateTime(10, 10))
-          .withExpectedArrivalTime(zonedDateTime(10, 11))
-          .withActualArrivalTime(zonedDateTime(10, 12))
-          .withAimedDepartureTime(zonedDateTime(10, 12))
-          .withExpectedDepartureTime(zonedDateTime(10, 13))
-          .withActualDepartureTime(zonedDateTime(10, 14))
-          .build(),
-        TestCall
-          .of()
-          .withStopPointRef(STOP_C_1.getId().getId())
-          .withAimedArrivalTime(zonedDateTime(10, 20))
-          .withExpectedArrivalTime(zonedDateTime(10, 25))
-          .build()
-      ),
-      false,
-      null,
-      false,
-      "DATASOURCE"
-    )
-      .build();
-
-    TripUpdate tripUpdate = secondResult.successValue();
-    StopPattern stopPattern = tripUpdate.stopPattern();
-    assertEquals(PATTERN.getStopPattern(), stopPattern);
-
-    updatedTimes = tripUpdate.tripTimes();
-    assertEquals(secondsInDay(10, 2), updatedTimes.getArrivalTime(0));
-    assertEquals(secondsInDay(10, 2), updatedTimes.getDepartureTime(0));
-    // TODO - this should probably be carried over?
-    // assertTrue(updatedTimes.isRecordedStop(0));
-    assertEquals(secondsInDay(10, 12), updatedTimes.getArrivalTime(1));
-    assertEquals(secondsInDay(10, 14), updatedTimes.getDepartureTime(1));
-    assertTrue(updatedTimes.isRecordedStop(1));
-    assertEquals(secondsInDay(10, 25), updatedTimes.getArrivalTime(2));
-    assertEquals(secondsInDay(10, 25), updatedTimes.getDepartureTime(2));
-    assertFalse(updatedTimes.isRecordedStop(2));
-    assertEquals(RealTimeState.UPDATED, updatedTimes.getRealTimeState());
-  }
-
-  @Test
-  void testCreateStopPatternNoCalls() {
-    // No calls should result in original pattern
-    var result = ModifiedTripBuilder.createStopPattern(PATTERN, List.of(), entityResolver);
-
-    // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertEquals(PATTERN.getStopPattern(), result);
-  }
-
-  @Test
-  void testCreateStopPatternSingleCall() {
-    // No change in stops should result in original pattern
-    var result = ModifiedTripBuilder.createStopPattern(
-      PATTERN,
-      List.of(TestCall.of().withStopPointRef(STOP_C_1.getId().getId()).build()),
-      entityResolver
-    );
-
-    // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertEquals(PATTERN.getStopPattern(), result);
-  }
-
-  @Test
   void testCreateStopPatternSameStopCalls() {
     // No change in stops should result in original pattern
     var result = ModifiedTripBuilder.createStopPattern(
@@ -564,8 +421,8 @@ class ModifiedTripBuilderTest {
     );
 
     // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertEquals(PATTERN.getStopPattern(), result);
+    assertTrue(result.isSuccess());
+    assertEquals(PATTERN.getStopPattern(), result.successValue());
   }
 
   @Test
@@ -582,10 +439,10 @@ class ModifiedTripBuilderTest {
     );
 
     // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertNotEquals(PATTERN.getStopPattern(), result);
+    assertTrue(result.isSuccess());
+    assertNotEquals(PATTERN.getStopPattern(), result.successValue());
 
-    var newPattern = PATTERN.copy().withStopPattern(result).build();
+    var newPattern = PATTERN.copy().withStopPattern(result.successValue()).build();
     assertEquals(STOP_A_2, newPattern.getStop(0));
     assertEquals(STOP_B_1, newPattern.getStop(1));
     assertEquals(STOP_C_1, newPattern.getStop(2));
@@ -598,7 +455,7 @@ class ModifiedTripBuilderTest {
 
   @Test
   void testCreateStopPatternDifferentStationCall() {
-    // Stop on non-pattern stop, without parent station should be ignored
+    // Stop on non-pattern stop, without parent station should be rejected
     var result = ModifiedTripBuilder.createStopPattern(
       PATTERN,
       List.of(
@@ -610,8 +467,8 @@ class ModifiedTripBuilderTest {
     );
 
     // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertEquals(PATTERN.getStopPattern(), result);
+    assertTrue(result.isFailure());
+    assertEquals(UpdateError.UpdateErrorType.STOP_MISMATCH, result.failureValue().errorType());
   }
 
   @Test
@@ -628,10 +485,10 @@ class ModifiedTripBuilderTest {
     );
 
     // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertNotEquals(PATTERN.getStopPattern(), result);
+    assertTrue(result.isSuccess());
+    assertNotEquals(PATTERN.getStopPattern(), result.successValue());
 
-    var newPattern = PATTERN.copy().withStopPattern(result).build();
+    var newPattern = PATTERN.copy().withStopPattern(result.successValue()).build();
     assertEquals(STOP_A_1, newPattern.getStop(0));
     assertEquals(STOP_B_1, newPattern.getStop(1));
     assertEquals(STOP_C_1, newPattern.getStop(2));
@@ -653,8 +510,7 @@ class ModifiedTripBuilderTest {
       PATTERN,
       List.of(
         TestCall.of().withStopPointRef(STOP_A_1.getId().getId()).build(),
-        TestCall
-          .of()
+        TestCall.of()
           .withStopPointRef(STOP_B_1.getId().getId())
           .withDepartureBoardingActivity(DepartureBoardingActivityEnumeration.NO_BOARDING)
           .build(),
@@ -664,10 +520,10 @@ class ModifiedTripBuilderTest {
     );
 
     // Assert
-    assertNotNull(result, "The stops should not be null");
-    assertNotEquals(PATTERN.getStopPattern(), result);
+    assertTrue(result.isSuccess());
+    assertNotEquals(PATTERN.getStopPattern(), result.successValue());
 
-    var newPattern = PATTERN.copy().withStopPattern(result).build();
+    var newPattern = PATTERN.copy().withStopPattern(result.successValue()).build();
     assertEquals(STOP_A_1, newPattern.getStop(0));
     assertEquals(STOP_B_1, newPattern.getStop(1));
     assertEquals(STOP_C_1, newPattern.getStop(2));

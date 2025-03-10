@@ -4,7 +4,6 @@ import jakarta.inject.Inject;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import org.opentripplanner.framework.geometry.WgsCoordinate;
 import org.opentripplanner.framework.i18n.I18NString;
 import org.opentripplanner.graph_builder.module.nearbystops.NearbyStopFinder;
@@ -60,29 +59,24 @@ public class DefaultViaCoordinateTransferFactory implements ViaCoordinateTransfe
         (StringUtils.hasValue(viaLabel) ? viaLabel : "Via") + " " + coordinate
       );
 
-      var viaVertex = new TemporaryStreetLocation(
-        UUID.randomUUID().toString(),
-        coordinate.asJtsCoordinate(),
-        name
-      );
+      var viaVertex = new TemporaryStreetLocation(coordinate.asJtsCoordinate(), name);
 
       var m = mapTransferMode(request.journey().modes().transferMode);
 
-      tempEdges =
-        graph
-          .getLinker()
-          .linkVertexForRequest(
-            viaVertex,
-            new TraverseModeSet(m),
-            LinkingDirection.BIDIRECTIONAL,
-            (via, street) -> {
-              var v = (TemporaryStreetLocation) via;
-              return List.of(
-                TemporaryFreeEdge.createTemporaryFreeEdge(street, v),
-                TemporaryFreeEdge.createTemporaryFreeEdge(v, street)
-              );
-            }
-          );
+      tempEdges = graph
+        .getLinker()
+        .linkVertexForRequest(
+          viaVertex,
+          new TraverseModeSet(m),
+          LinkingDirection.BIDIRECTIONAL,
+          (via, street) -> {
+            var v = (TemporaryStreetLocation) via;
+            return List.of(
+              TemporaryFreeEdge.createTemporaryFreeEdge(street, v),
+              TemporaryFreeEdge.createTemporaryFreeEdge(v, street)
+            );
+          }
+        );
 
       var toStops = findNearbyStops(nearbyStopFinder, viaVertex, request, false);
       var fromStops = findNearbyStops(nearbyStopFinder, viaVertex, request, true);
