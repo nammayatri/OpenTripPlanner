@@ -118,15 +118,23 @@ public class RoutingWorker {
       // Direct flex routing
       routeDirectFlex(itineraries, routingErrors);
 
-      // Transit routing
+      // Transit routing (our main use case where the whole flow of code occurs)
+      LOG.debug("routeTransit function has started");
       routeTransit(itineraries, routingErrors);
+      LOG.debug("routeTransit function has ended");
     }
 
+    // Check if filtered
     debugTimingAggregator.finishedRouting();
+    LOG.debug("The unfiltered itineraries are:");
+    LOG.debug(itineraries.toString());
+    List<Itinerary> unFilteredItineraries = itineraries;
 
     // Filter itineraries
     List<Itinerary> filteredItineraries;
     {
+      // TODO: remove all walking routes even when mode is not flex
+      // boolean removeWalkAllTheWayResultsFromDirectFlex = true;
       boolean removeWalkAllTheWayResultsFromDirectFlex =
         request.journey().direct().mode() == StreetMode.FLEXIBLE;
 
@@ -142,6 +150,8 @@ public class RoutingWorker {
 
       filteredItineraries = filterChain.filter(itineraries);
       routingErrors.addAll(filterChain.getRoutingErrors());
+      LOG.debug("The filtered itineraries are:");
+      LOG.debug(filteredItineraries.toString());
     }
 
     if (LOG.isDebugEnabled()) {
@@ -165,6 +175,8 @@ public class RoutingWorker {
     return RoutingResponseMapper.map(
       request,
       raptorSearchParamsUsed,
+      // NOT RECOMMENDED. Does return results but has bad routes with public transit taking exponentially more than walking directly itself
+      // filteredItineraries.isEmpty() ? unFilteredItineraries : filteredItineraries,
       filteredItineraries,
       routingErrors,
       debugTimingAggregator,

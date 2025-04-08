@@ -41,8 +41,12 @@ import org.opentripplanner.routing.error.RoutingValidationException;
 import org.opentripplanner.routing.framework.DebugTimingAggregator;
 import org.opentripplanner.standalone.api.OtpServerRequestContext;
 import org.opentripplanner.street.search.TemporaryVerticesContainer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransitRouter {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TransitRouter.class);
 
   public static final int NOT_SET = -1;
 
@@ -113,6 +117,7 @@ public class TransitRouter {
 
     debugTimingAggregator.finishedPatternFiltering();
 
+    // this fetches all the accessable stops from the source and the stops from which we can reach the destination
     var accessEgresses = fetchAccessEgresses();
 
     debugTimingAggregator.finishedAccessEgress(
@@ -120,7 +125,7 @@ public class TransitRouter {
       accessEgresses.getEgresses().size()
     );
 
-    // Prepare transit search
+    // Prepare transit search (Core raptor)
     var raptorRequest = RaptorRequestMapper.<TripSchedule>mapRequest(
       request,
       transitSearchTimeZero,
@@ -236,6 +241,7 @@ public class TransitRouter {
       });
     }
 
+    // this limit and count restricts our stops
     Duration durationLimit = accessRequest
       .preferences()
       .street()
@@ -243,6 +249,10 @@ public class TransitRouter {
       .maxDuration()
       .valueOf(streetRequest.mode());
     int stopCountLimit = accessRequest.preferences().street().accessEgress().maxStopCount();
+    LOG.debug("The durationLimit is:");
+    LOG.debug(durationLimit.toString());
+    LOG.debug("The stopCountLimit is:");
+    LOG.debug(String.valueOf(stopCountLimit));
 
     var nearbyStops = AccessEgressRouter.streetSearch(
       accessRequest,
