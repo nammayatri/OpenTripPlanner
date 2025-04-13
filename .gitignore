@@ -37,6 +37,7 @@ gen-py/
 node_modules/
 target/
 /graphs
+out/
 
 # for local dev only
 /src/test/resources/speedtest/travelSearch-results-*.csv
