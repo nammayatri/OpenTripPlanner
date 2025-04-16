@@ -43,10 +43,9 @@ public class AccessEgressRouter {
       transitService,
       durationLimit,
       maxStopCount,
-      dataOverlayContext,
-      true
+      dataOverlayContext
     );
-    // finds nearby stops via a* and Djiksthra
+    // finds nearby stops via a*
     List<NearbyStop> nearbyStopList = nearbyStopFinder.findNearbyStopsViaStreets(
       fromTarget ? verticesContainer.getToVertices() : verticesContainer.getFromVertices(),
       fromTarget,

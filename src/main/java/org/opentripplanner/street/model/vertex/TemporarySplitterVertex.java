@@ -1,5 +1,6 @@
 package org.opentripplanner.street.model.vertex;
 
+import org.opentripplanner.framework.i18n.I18NString;
 import org.opentripplanner.street.model.edge.Edge;
 import org.opentripplanner.street.model.edge.StreetEdge;
 
@@ -23,6 +24,12 @@ public class TemporarySplitterVertex extends SplitterVertex implements Temporary
     super(label, x, y, streetEdge.getName());
     this.endVertex = endVertex;
     this.wheelchairAccessible = streetEdge.isWheelchairAccessible();
+  }
+
+  public TemporarySplitterVertex(String label, double x, double y, boolean endVertex) {
+    super(label, x, y, I18NString.of(""));
+    this.endVertex = endVertex;
+    this.wheelchairAccessible = false;
   }
 
   @Override

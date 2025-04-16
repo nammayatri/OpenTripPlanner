@@ -2,11 +2,27 @@ package org.opentripplanner.routing.graphfinder;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.opentripplanner.framework.geometry.SphericalDistanceLibrary;
+import org.opentripplanner.framework.i18n.NonLocalizedString;
+import org.opentripplanner.street.model.edge.Edge;
+import org.opentripplanner.street.model.edge.FreeEdge;
+import org.opentripplanner.street.model.edge.PathwayEdge;
+import org.opentripplanner.street.model.edge.StreetEdge;
+import org.opentripplanner.street.model.edge.StreetEdgeBuilder;
+import org.opentripplanner.street.model.edge.TemporaryFreeEdge;
+import org.opentripplanner.street.model.vertex.IntersectionVertex;
+import org.opentripplanner.street.model.vertex.LabelledIntersectionVertex;
+import org.opentripplanner.street.model.vertex.TemporarySplitterVertex;
+import org.opentripplanner.street.model.vertex.TemporaryVertex;
+import org.opentripplanner.street.model.vertex.Vertex;
+import org.opentripplanner.street.model.vertex.VertexFactory;
+import org.opentripplanner.street.search.request.StreetSearchRequest;
+import org.opentripplanner.street.search.state.State;
 import org.opentripplanner.transit.model.basic.TransitMode;
 import org.opentripplanner.transit.model.framework.FeedScopedId;
 import org.opentripplanner.transit.model.site.RegularStop;
@@ -42,6 +58,57 @@ public class DirectGraphFinder implements GraphFinder {
       );
       if (distance < radiusMeters) {
         NearbyStop sd = new NearbyStop(it, distance, null, null);
+        stopsFound.add(sd);
+      }
+    }
+
+    stopsFound.sort(NearbyStop::compareTo);
+
+    return stopsFound;
+  }
+
+  public static TemporarySplitterVertex temporarySplitterVertex(
+    String label,
+    double lat,
+    double lon,
+    boolean endVertex
+  ) {
+    return new TemporarySplitterVertex(label, lat, lon, endVertex);
+  }
+
+  public List<NearbyStop> findClosestStopsWithState(
+    Coordinate coordinate,
+    double radiusMeters,
+    Vertex vertex,
+    StreetSearchRequest streetSearchRequest,
+    Boolean reverseDirection
+  ) {
+    List<NearbyStop> stopsFound = new ArrayList<>();
+    Envelope envelope = new Envelope(coordinate);
+    envelope.expandBy(
+      SphericalDistanceLibrary.metersToLonDegrees(radiusMeters, coordinate.y),
+      SphericalDistanceLibrary.metersToDegrees(radiusMeters)
+    );
+    for (RegularStop it : queryNearbyStops.apply(envelope)) {
+      double distance = Math.round(
+        SphericalDistanceLibrary.distance(coordinate, it.getCoordinate().asJtsCoordinate())
+      );
+      boolean endVertex = !reverseDirection;
+      IntersectionVertex stopVertex = temporarySplitterVertex(
+        "",
+        it.getLat(),
+        it.getLon(),
+        endVertex
+      );
+      TemporaryFreeEdge edge;
+      if (reverseDirection) {
+        edge = TemporaryFreeEdge.createTemporaryFreeEdge((TemporaryVertex) stopVertex, vertex);
+      } else {
+        edge = TemporaryFreeEdge.createTemporaryFreeEdge(vertex, (TemporaryVertex) stopVertex);
+      }
+      List<Edge> edges = Collections.singletonList(edge);
+      if (distance < radiusMeters) {
+        NearbyStop sd = new NearbyStop(it, distance, edges, new State(vertex, streetSearchRequest));
         stopsFound.add(sd);
       }
     }

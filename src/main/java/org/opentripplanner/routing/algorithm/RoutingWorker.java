@@ -237,6 +237,8 @@ public class RoutingWorker {
     debugTimingAggregator.startedDirectStreetRouter();
     try {
       itineraries.addAll(DirectStreetRouter.route(serverContext, request));
+      LOG.debug("The results of the direct street routing is: ");
+      LOG.debug(itineraries.toString());
     } catch (RoutingValidationException e) {
       routingErrors.addAll(e.getRoutingErrors());
     } finally {
