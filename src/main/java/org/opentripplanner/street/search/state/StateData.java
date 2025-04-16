@@ -158,11 +158,6 @@ public class StateData implements Cloneable {
       inCarPickupStateData.carPickupState = CarPickupState.IN_CAR;
       inCarPickupStateData.currentMode = TraverseMode.CAR;
       res.add(inCarPickupStateData);
-      var walkingPickupStateData = proto.clone();
-      walkingPickupStateData.carPickupState =
-        arriveBy ? CarPickupState.WALK_FROM_DROP_OFF : CarPickupState.WALK_TO_PICKUP;
-      walkingPickupStateData.currentMode = TraverseMode.WALK;
-      res.add(walkingPickupStateData);
     }
     // Vehicle rental searches may end in four states (see State#isFinal()):
     // When searching forward:

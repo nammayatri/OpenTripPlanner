@@ -357,10 +357,7 @@ public class StateEditor {
   public void setCarPickupState(CarPickupState carPickupState) {
     cloneStateDataAsNeeded();
     child.stateData.carPickupState = carPickupState;
-    switch (carPickupState) {
-      case WALK_TO_PICKUP, WALK_FROM_DROP_OFF -> child.stateData.currentMode = TraverseMode.WALK;
-      case IN_CAR -> child.stateData.currentMode = TraverseMode.CAR;
-    }
+    child.stateData.currentMode = TraverseMode.CAR;
   }
 
   public void setTimeSeconds(long seconds) {

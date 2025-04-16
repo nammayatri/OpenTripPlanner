@@ -46,7 +46,7 @@ public class AccessEgressRouter {
       dataOverlayContext,
       true
     );
-    // finds nearby stops via a* and Djiksthra
+    // finds nearby stops via a*
     List<NearbyStop> nearbyStopList = nearbyStopFinder.findNearbyStopsViaStreets(
       fromTarget ? verticesContainer.getToVertices() : verticesContainer.getFromVertices(),
       fromTarget,
