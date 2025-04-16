@@ -423,19 +423,6 @@ public class StreetEdge
       }
     }
 
-    if (
-      canDropOffAfterDriving(s0) &&
-      !getPermission().allows(TraverseMode.CAR) &&
-      canTraverse(TraverseMode.WALK)
-    ) {
-      StateEditor dropOff = doTraverse(s0, TraverseMode.WALK, false);
-      if (dropOff != null) {
-        dropOffAfterDriving(s0, dropOff);
-        // Only the walk state is returned, since traversing by car was not possible
-        return dropOff.makeStateArray();
-      }
-    }
-
     return State.ofNullable(state);
   }
 
