@@ -423,6 +423,7 @@
                 <artifactId>prettier-maven-plugin</artifactId>
                 <version>${plugin.prettier.version}</version>
                 <configuration>
+                    <skip> true </skip>
                     <prettierJavaVersion>2.0.0</prettierJavaVersion>
                     <inputGlobs>
                         <inputGlob>src/main/java/**/*.java</inputGlob>

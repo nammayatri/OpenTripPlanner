@@ -49,7 +49,7 @@ otp.config = {
     /**
      * The OTP web service locations
      */
-    hostname : "",
+    hostname : "https://api.sandbox.moving.tech/nandi",
     //hostname : "http://localhost:8080",
     //municoderHostname : "http://localhost:8080",
     //datastoreUrl : 'http://localhost:9000',
