@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import org.opentripplanner.ext.ridehailing.RideHailingAccessShifter;
 import org.opentripplanner.framework.application.OTPFeature;
+import org.opentripplanner.framework.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.model.plan.Itinerary;
 import org.opentripplanner.raptor.RaptorService;
 import org.opentripplanner.raptor.api.path.RaptorPath;
@@ -248,6 +249,9 @@ public class TransitRouter {
       .accessEgress()
       .maxDuration()
       .valueOf(streetRequest.mode());
+    if (streetRequest.mode() == StreetMode.CAR_PICKUP || streetRequest.mode() == StreetMode.CAR) {
+      durationLimit = dynamicDurationForCar();
+    }
     int stopCountLimit = accessRequest.preferences().street().accessEgress().maxStopCount();
     LOG.debug("The durationLimit is:");
     LOG.debug(durationLimit.toString());
@@ -359,6 +363,34 @@ public class TransitRouter {
         List.of(new RoutingError(RoutingErrorCode.NO_TRANSIT_CONNECTION, null))
       );
     }
+  }
+
+  private Duration dynamicDurationForCar() {
+    double fastDistance = SphericalDistanceLibrary.fastDistance(
+      request.from().getCoordinate(),
+      request.to().getCoordinate()
+    );
+
+    double averageCarSpeedKmph = 30.0;
+    double approximateTravelDurationInMinutes =
+      ((fastDistance / 1000.0) / averageCarSpeedKmph) * 60;
+    double carRatio = 0.35;
+
+    double carAccessTimeInMinutes = approximateTravelDurationInMinutes * carRatio;
+    long carAccessTimeInMinutesLong = Math.round(carAccessTimeInMinutes);
+
+    LOG.info(
+      String.format(
+        "dynamicDurationForCar: \n- Fast distance: %.2f meters\n- Estimated total travel time: %.2f minutes\n- Car access time (%d%%): %.2f minutes (rounded to %d minutes)",
+        fastDistance,
+        approximateTravelDurationInMinutes,
+        (int) (carRatio * 100),
+        carAccessTimeInMinutes,
+        carAccessTimeInMinutesLong
+      )
+    );
+
+    return Duration.ofMinutes(carAccessTimeInMinutesLong);
   }
 
   private TemporaryVerticesContainer createTemporaryVerticesContainer(
