@@ -115,14 +115,6 @@ public abstract class StreetTransitEntityLink<T extends Vertex>
         if (s0.getRequest().mode().includesParking() && !s0.isVehicleParked()) {
           yield State.empty();
         }
-        // For Kiss & Ride allow dropping of the passenger before entering the station
-        if (s0.getCarPickupState() != null) {
-          if (canDropOffAfterDriving(s0) && isLeavingStreetNetwork(s0.getRequest().arriveBy())) {
-            dropOffAfterDriving(s0, s1);
-          } else {
-            yield State.empty();
-          }
-        }
         if (s0.isRentingVehicleFromStation()) {
           yield State.empty();
         }
