@@ -242,12 +242,13 @@ public class TransitRouter {
     }
 
     // this limit and count restricts our stops
-    Duration durationLimit = accessRequest
-      .preferences()
-      .street()
-      .accessEgress()
-      .maxDuration()
-      .valueOf(streetRequest.mode());
+    //    Duration durationLimit = accessRequest
+    //      .preferences()
+    //      .street()
+    //      .accessEgress()
+    //      .maxDuration()
+    //      .valueOf(streetRequest.mode());
+    Duration durationLimit = Duration.ofMinutes(20);
     int stopCountLimit = accessRequest.preferences().street().accessEgress().maxStopCount();
     LOG.debug("The durationLimit is:");
     LOG.debug(durationLimit.toString());

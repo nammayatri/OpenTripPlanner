@@ -104,9 +104,10 @@ public class StreetLinkerModule implements GraphBuilderModule {
 
     for (TransitStopVertex tStop : vertices) {
       // Stops with pathways do not need to be connected to the street network, since there are explicit entrances defined for that
-      if (tStop.hasPathways()) {
-        continue;
-      }
+      // TODO: uncomment this line of code once done with testing
+      //      if (tStop.hasPathways()) {
+      //        continue;
+      //      }
       // check if stop is already linked, to allow multiple idempotent linking cycles
       if (tStop.isConnectedToGraph()) {
         continue;

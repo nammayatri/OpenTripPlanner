@@ -46,7 +46,7 @@ public final class AccessEgressPreferences implements Serializable {
   private AccessEgressPreferences() {
     this.maxDuration = durationForStreetModeOf(ofMinutes(45));
     this.penalty = DEFAULT_TIME_AND_COST;
-    this.maxStopCount = 500;
+    this.maxStopCount = 200;
   }
 
   private AccessEgressPreferences(Builder builder) {

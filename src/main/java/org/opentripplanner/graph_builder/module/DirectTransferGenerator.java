@@ -72,8 +72,7 @@ public class DirectTransferGenerator implements GraphBuilderModule {
       new DefaultTransitService(transitModel),
       radiusByDuration,
       0,
-      null,
-      graph.hasStreets
+      null
     );
     if (nearbyStopFinder.useStreets) {
       LOG.info("Creating direct transfer edges between stops using the street network from OSM...");
@@ -120,7 +119,7 @@ public class DirectTransferGenerator implements GraphBuilderModule {
             ts0,
             transferProfile,
             transferProfile.journey().transfer(),
-            false
+            true
           )) {
             // Skip the origin stop, loop transfers are not needed.
             if (sd.stop == stop) {
