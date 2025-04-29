@@ -5,6 +5,8 @@ import org.opentripplanner.framework.model.TimeAndCost;
 import org.opentripplanner.raptor.api.model.RaptorAccessEgress;
 import org.opentripplanner.raptor.api.model.RaptorConstants;
 import org.opentripplanner.routing.algorithm.raptoradapter.transit.cost.RaptorCostConverter;
+import org.opentripplanner.routing.api.request.preference.RoutingPreferences;
+import org.opentripplanner.routing.graphfinder.NearbyStop;
 import org.opentripplanner.street.search.state.State;
 
 /**
@@ -29,6 +31,24 @@ public class DefaultAccessEgress implements RaptorAccessEgress {
     this.stop = stop;
     this.durationInSeconds = (int) lastState.getElapsedTimeSeconds();
     this.generalizedCost = RaptorCostConverter.toRaptorCost(lastState.getWeight());
+    this.lastState = lastState;
+    this.timePenalty = RaptorConstants.TIME_NOT_SET;
+    this.penalty = TimeAndCost.ZERO;
+  }
+
+  public DefaultAccessEgress(
+    int stop,
+    State lastState,
+    NearbyStop nearbyStop,
+    RoutingPreferences routingPreferences
+  ) { // can be used for a walk only without modifications
+    this.stop = stop;
+    this.durationInSeconds = (int) (nearbyStop.getDistance() / routingPreferences.walk().speed());
+    this.generalizedCost =
+      RaptorCostConverter.toRaptorCost(
+        nearbyStop.getDistance() * routingPreferences.walk().reluctance()
+      ); //TODO(jayanth): to check this logic
+    // TODO(jayanth): must add wheelchair if needed and walk safety factor in future if needed
     this.lastState = lastState;
     this.timePenalty = RaptorConstants.TIME_NOT_SET;
     this.penalty = TimeAndCost.ZERO;

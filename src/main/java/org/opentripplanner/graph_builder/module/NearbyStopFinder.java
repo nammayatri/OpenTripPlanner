@@ -225,13 +225,18 @@ public class NearbyStopFinder {
     LOG.debug("The shortest path tree found is:");
     LOG.debug(spt.toString());
 
+    Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
     if (spt != null) {
       // TODO use GenericAStar and a traverseVisitor? Add an earliestArrival switch to genericAStar?
       for (State state : spt.getAllStates()) {
         Vertex targetVertex = state.getVertex();
         if (originVertices.contains(targetVertex)) continue;
         if (targetVertex instanceof TransitStopVertex tsv && state.isFinal()) {
-          stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+          if (state.containsOnlyWalkMode()) {
+            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
+          } else {
+            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+          }
         }
         if (
           OTPFeature.FlexRouting.isOn() &&
@@ -335,13 +340,18 @@ public class NearbyStopFinder {
     LOG.debug("The shortest path tree found is:");
     LOG.debug(spt.toString());
 
+    Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
     if (spt != null) {
       // TODO use GenericAStar and a traverseVisitor? Add an earliestArrival switch to genericAStar?
       for (State state : spt.getAllStates()) {
         Vertex targetVertex = state.getVertex();
         if (originVertices.contains(targetVertex)) continue;
         if (targetVertex instanceof TransitStopVertex tsv && state.isFinal()) {
-          stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+          if (state.containsOnlyWalkMode()) {
+            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
+          } else {
+            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+          }
         }
         if (
           OTPFeature.FlexRouting.isOn() &&

@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import org.opentripplanner.astar.model.GraphPath;
+import org.opentripplanner.framework.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.street.model.edge.Edge;
+import org.opentripplanner.street.model.vertex.Vertex;
 import org.opentripplanner.street.search.state.State;
 import org.opentripplanner.transit.model.site.StopLocation;
 
@@ -41,6 +43,19 @@ public class NearbyStop implements Comparable<NearbyStop> {
       edges.add(edge);
     }
     return new NearbyStop(stop, effectiveWalkDistance, edges, state);
+  }
+
+  public static NearbyStop nearbyStopForState(State state, StopLocation stop, Vertex vertex) {
+    var graphPath = new GraphPath<>(state);
+    var distance = SphericalDistanceLibrary.distance(
+      stop.getCoordinate().asJtsCoordinate(),
+      vertex.getCoordinate()
+    );
+    return new NearbyStop(stop, distance, graphPath.edges, state);
+  }
+
+  public double getDistance() {
+    return distance;
   }
 
   @Override

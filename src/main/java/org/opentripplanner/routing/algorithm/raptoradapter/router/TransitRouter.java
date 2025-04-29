@@ -268,11 +268,13 @@ public class TransitRouter {
       durationLimit,
       stopCountLimit
     );
-
-    List<DefaultAccessEgress> results = new ArrayList<>(
-      AccessEgressMapper.mapNearbyStops(nearbyStops, type.isEgress())
-    );
+    List<DefaultAccessEgress> mappedStops = streetRequest.mode() == StreetMode.WALK
+      ? AccessEgressMapper.mapNearbyStops(nearbyStops, type.isEgress(), request.preferences())
+      : AccessEgressMapper.mapNearbyStops(nearbyStops, type.isEgress());
+    List<DefaultAccessEgress> results = new ArrayList<>(mappedStops);
     results = timeshiftRideHailing(streetRequest, type, results);
+    LOG.debug("The nearbyStops are: {}", nearbyStops.toString());
+    LOG.debug("The defaultAccessEgress are: {}\n", results.toString());
 
     // Special handling of flex accesses
     if (OTPFeature.FlexRouting.isOn() && streetRequest.mode() == StreetMode.FLEXIBLE) {
