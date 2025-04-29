@@ -20,7 +20,9 @@ import org.opentripplanner.astar.spi.SearchTerminationStrategy;
 import org.opentripplanner.astar.spi.SkipEdgeStrategy;
 import org.opentripplanner.astar.spi.TraverseVisitor;
 import org.opentripplanner.framework.application.OTPRequestTimeoutException;
+import org.opentripplanner.framework.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.framework.time.DateUtils;
+import org.opentripplanner.street.model.vertex.TransitStopVertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,6 +96,24 @@ public class AStar<
     return spt;
   }
 
+  boolean shouldSkipEdge(Vertex vertex) {
+    Set<Vertex> finalVertices = fromVertices != null ? fromVertices : toVertices;
+    Vertex firstVertex = new ArrayList<>(finalVertices).getFirst();
+    if (vertex instanceof TransitStopVertex) {
+      org.opentripplanner.street.model.vertex.Vertex vertex1 = (org.opentripplanner.street.model.vertex.Vertex) firstVertex;
+      org.opentripplanner.street.model.vertex.Vertex vertex2 = (org.opentripplanner.street.model.vertex.Vertex) vertex;
+      var distance = SphericalDistanceLibrary.distance(
+        vertex1.getCoordinate(),
+        vertex2.getCoordinate()
+      );
+      LOG.debug("The value of vertex1 is: {}", vertex1.toString());
+      LOG.debug("The value of vertex2 is: {}", vertex2.toString());
+      LOG.debug("The distance is: {}", distance);
+      return distance >= 1000; // TODO(jayanth): make this configurable
+    }
+    return false;
+  }
+
   List<GraphPath<State, Edge, Vertex>> getPathsToTarget() {
     runSearch();
 
@@ -136,7 +156,10 @@ public class AStar<
 
     Collection<Edge> edges = arriveBy ? u_vertex.getIncoming() : u_vertex.getOutgoing();
     for (Edge edge : edges) {
-      if (skipEdgeStrategy != null && skipEdgeStrategy.shouldSkipEdge(u, edge)) {
+      if (
+        shouldSkipEdge(u_vertex) ||
+        (skipEdgeStrategy != null && skipEdgeStrategy.shouldSkipEdge(u, edge))
+      ) {
         continue;
       }
 
