@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TransitRouter {
-
   private static final Logger LOG = LoggerFactory.getLogger(TransitRouter.class);
 
   public static final int NOT_SET = -1;
@@ -126,7 +125,7 @@ public class TransitRouter {
       accessEgresses.getEgresses().size()
     );
 
-    // Prepare transit search (Core raptor)
+    // Prepare transit search
     var raptorRequest = RaptorRequestMapper.<TripSchedule>mapRequest(
       request,
       transitSearchTimeZero,
@@ -242,7 +241,6 @@ public class TransitRouter {
       });
     }
 
-    // this limit and count restricts our stops
     Duration durationLimit = accessRequest
       .preferences()
       .street()
@@ -253,10 +251,6 @@ public class TransitRouter {
       durationLimit = dynamicDurationForCar();
     }
     int stopCountLimit = accessRequest.preferences().street().accessEgress().maxStopCount();
-    LOG.debug("The durationLimit is:");
-    LOG.debug(durationLimit.toString());
-    LOG.debug("The stopCountLimit is:");
-    LOG.debug(String.valueOf(stopCountLimit));
 
     var nearbyStops = AccessEgressRouter.streetSearch(
       accessRequest,
@@ -273,8 +267,6 @@ public class TransitRouter {
       : AccessEgressMapper.mapNearbyStops(nearbyStops, type.isEgress());
     List<DefaultAccessEgress> results = new ArrayList<>(mappedStops);
     results = timeshiftRideHailing(streetRequest, type, results);
-    LOG.debug("The nearbyStops are: {}", nearbyStops.toString());
-    LOG.debug("The defaultAccessEgress are: {}\n", results.toString());
 
     // Special handling of flex accesses
     if (OTPFeature.FlexRouting.isOn() && streetRequest.mode() == StreetMode.FLEXIBLE) {

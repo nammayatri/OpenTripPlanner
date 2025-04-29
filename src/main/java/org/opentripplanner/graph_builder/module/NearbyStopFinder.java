@@ -200,9 +200,6 @@ public class NearbyStopFinder {
       request,
       streetRequest
     );
-    LOG.debug("The directly connected stops are:");
-    LOG.debug(stopsFound.toString());
-
     // Return only the origin vertices if there are no valid street modes
     if (streetRequest.mode() == StreetMode.NOT_SET) {
       return stopsFound;
@@ -222,8 +219,6 @@ public class NearbyStopFinder {
 
     // Only used if OTPFeature.FlexRouting.isOn()
     Multimap<AreaStop, State> locationsMap = ArrayListMultimap.create();
-    LOG.debug("The shortest path tree found is:");
-    LOG.debug(spt.toString());
 
     Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
     if (spt != null) {
@@ -273,13 +268,10 @@ public class NearbyStopFinder {
       }
     }
     Duration maxDuration = Duration.ofHours(3);
-    // if no stops are within effective Radius then increase durationLimit but don't go beyond 3
-    // durationLimit = 1 / performance (exponentially)
-    // if (stopsFound.isEmpty() && duration.compareTo(maxDuration) < 0) {
     if (stopsFound.isEmpty() && duration.compareTo(maxDuration) < 0) {
       Duration newDurationLimit = duration.multipliedBy(2);
       LOG.debug(
-        "No stops found increasing maxDuration for walkies to :" + newDurationLimit.toString()
+        "No stops found increasing maxDuration for walk to {}", newDurationLimit.toString()
       );
       stopsFound =
         findNearbyStopsViaStreets(
@@ -315,8 +307,6 @@ public class NearbyStopFinder {
       request,
       streetRequest
     );
-    LOG.debug("The directly connected stops are:");
-    LOG.debug(stopsFound.toString());
 
     // Return only the origin vertices if there are no valid street modes
     if (streetRequest.mode() == StreetMode.NOT_SET) {
@@ -337,8 +327,6 @@ public class NearbyStopFinder {
 
     // Only used if OTPFeature.FlexRouting.isOn()
     Multimap<AreaStop, State> locationsMap = ArrayListMultimap.create();
-    LOG.debug("The shortest path tree found is:");
-    LOG.debug(spt.toString());
 
     Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
     if (spt != null) {
@@ -387,11 +375,10 @@ public class NearbyStopFinder {
         stopsFound.add(NearbyStop.nearbyStopForState(min, areaStop));
       }
     }
-    // if no stops are within effective Radius then increase durationLimit
     if (stopsFound.isEmpty()) {
       Duration newDurationLimit = durationLimit.multipliedBy(2);
       LOG.debug(
-        "No stops found increasing maxDuration for walk to: " + newDurationLimit.toString()
+        "No stops found increasing maxDuration for walk to: {}", newDurationLimit.toString()
       );
       stopsFound =
         findNearbyStopsViaStreets(
