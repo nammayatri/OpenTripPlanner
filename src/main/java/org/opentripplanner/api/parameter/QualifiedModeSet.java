@@ -54,9 +54,10 @@ public class QualifiedModeSet implements Serializable {
       .stream()
       .filter(m ->
         m.mode == ApiRequestMode.WALK ||
-        m.mode == ApiRequestMode.BICYCLE ||
-        m.mode == ApiRequestMode.SCOOTER ||
-        m.mode == ApiRequestMode.CAR
+          m.mode == ApiRequestMode.BICYCLE ||
+          m.mode == ApiRequestMode.SCOOTER ||
+          m.mode == ApiRequestMode.CAR ||
+          m.mode == ApiRequestMode.CAR_TRANSIT
       )
       .toList();
 
@@ -102,6 +103,11 @@ public class QualifiedModeSet implements Serializable {
             throw new IllegalArgumentException();
           }
         }
+        case CAR_TRANSIT -> {
+          mBuilder.withAccessMode(StreetMode.CAR_TRANSIT);
+          mBuilder.withTransferMode(StreetMode.CAR_TRANSIT);
+          mBuilder.withEgressMode(StreetMode.CAR_TRANSIT);
+        }
         case CAR -> {
           if (requestMode.qualifiers.contains(Qualifier.RENT)) {
             mBuilder.withAllStreetModes(StreetMode.CAR_RENTAL);
@@ -111,13 +117,15 @@ public class QualifiedModeSet implements Serializable {
             mBuilder.withEgressMode(StreetMode.WALK);
             mBuilder.withDirectMode(StreetMode.CAR_TO_PARK);
           } else if (requestMode.qualifiers.contains(Qualifier.PICKUP)) {
-            mBuilder.withAccessMode(StreetMode.CAR_PICKUP);
-            mBuilder.withTransferMode(StreetMode.CAR_PICKUP);
+            mBuilder.withAccessMode(StreetMode.WALK);
+            mBuilder.withTransferMode(StreetMode.WALK);
             mBuilder.withEgressMode(StreetMode.CAR_PICKUP);
+            mBuilder.withDirectMode(StreetMode.CAR_PICKUP);
           } else if (requestMode.qualifiers.contains(Qualifier.DROPOFF)) {
             mBuilder.withAccessMode(StreetMode.CAR_PICKUP);
             mBuilder.withTransferMode(StreetMode.WALK);
             mBuilder.withEgressMode(StreetMode.WALK);
+            mBuilder.withDirectMode(StreetMode.CAR_PICKUP);
           } else if (requestMode.qualifiers.contains(Qualifier.HAIL)) {
             mBuilder.withAccessMode(StreetMode.CAR_HAILING);
             mBuilder.withTransferMode(StreetMode.WALK);

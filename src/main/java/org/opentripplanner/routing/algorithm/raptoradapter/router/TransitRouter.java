@@ -249,7 +249,7 @@ public class TransitRouter {
       .accessEgress()
       .maxDuration()
       .valueOf(streetRequest.mode());
-    if (streetRequest.mode() == StreetMode.CAR_PICKUP || streetRequest.mode() == StreetMode.CAR) {
+    if (streetRequest.mode() == StreetMode.CAR_TRANSIT) {
       durationLimit = dynamicDurationForCar();
     }
     int stopCountLimit = accessRequest.preferences().street().accessEgress().maxStopCount();
@@ -295,9 +295,8 @@ public class TransitRouter {
   }
 
   /**
-   * Given a list of {@code results} shift the access ones which contain driving
-   * so that they only start at the time when the ride hailing vehicle can actually be there
-   * to pick up passengers.
+   * Given a list of {@code results} shift the access ones which contain driving so that they only
+   * start at the time when the ride hailing vehicle can actually be there to pick up passengers.
    * <p>
    * If there are accesses/egresses with only walking then they remain unchanged.
    * <p>
