@@ -322,6 +322,7 @@ otp.config.modes = {
     //TRANSLATORS: Travel by: mode of transport (Used in selection in Travel Options widgets)
     "CAR"                      : _tr('Car Only'),
     "CAR_PICKUP"               : _tr('Taxi'),
+    "CAR_TRANSIT,TRANSIT"      : _tr('Car + Transit'),
     //TRANSLATORS: Travel by: mode of transport (Used in selection in Travel Options widgets)
     "CAR_PARK,TRANSIT"         : _tr('Park and Ride'),
     //TRANSLATORS: Travel by: mode of transport (Used in selection in Travel Options widgets)

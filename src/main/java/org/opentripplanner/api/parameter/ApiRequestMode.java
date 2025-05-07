@@ -9,6 +9,7 @@ public enum ApiRequestMode {
   BICYCLE(),
   SCOOTER(),
   CAR(),
+  CAR_TRANSIT(),
   TRAM(TransitMode.TRAM),
   SUBWAY(TransitMode.SUBWAY),
   RAIL(TransitMode.RAIL),

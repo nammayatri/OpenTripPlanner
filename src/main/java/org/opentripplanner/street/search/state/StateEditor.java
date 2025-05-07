@@ -92,7 +92,6 @@ public class StateEditor {
   /* PUBLIC METHODS */
 
   /**
-   *
    * Why can a state editor only be used once? If you modify some component of state with and
    * editor, use the editor to create a new state, and then make more modifications, these
    * modifications will be applied to the previously created state. Reusing the state editor to make
@@ -132,8 +131,8 @@ public class StateEditor {
   }
 
   /**
-   * Calls {@link StateEditor#makeState()} and wraps the result in an array of {@link State}.
-   * If the state is null, then a zero-length array is returned.
+   * Calls {@link StateEditor#makeState()} and wraps the result in an array of {@link State}. If the
+   * state is null, then a zero-length array is returned.
    */
   @Nonnull
   public State[] makeStateArray() {
@@ -152,9 +151,9 @@ public class StateEditor {
     if (Double.isInfinite(weight) || Double.isNaN(weight)) {
       LOG.warn(
         "A state's weight is being incremented by " +
-        weight +
-        " while traversing edge " +
-        child.backEdge
+          weight +
+          " while traversing edge " +
+          child.backEdge
       );
       defectiveTraversal = true;
       return;
@@ -162,7 +161,7 @@ public class StateEditor {
     if (weight < 0) {
       LOG.warn(
         "A state's weight is being incremented by a negative amount while traversing edge " +
-        child.backEdge
+          child.backEdge
       );
       defectiveTraversal = true;
       return;
@@ -179,7 +178,7 @@ public class StateEditor {
     if (seconds < 0) {
       LOG.warn(
         "A state's time is being incremented by a negative amount while traversing edge " +
-        child.getBackEdge()
+          child.getBackEdge()
       );
       defectiveTraversal = true;
       return;
@@ -357,7 +356,10 @@ public class StateEditor {
   public void setCarPickupState(CarPickupState carPickupState) {
     cloneStateDataAsNeeded();
     child.stateData.carPickupState = carPickupState;
-    child.stateData.currentMode = TraverseMode.CAR;
+    switch (carPickupState) {
+      case WALK_TO_PICKUP, WALK_FROM_DROP_OFF -> child.stateData.currentMode = TraverseMode.WALK;
+      case IN_CAR -> child.stateData.currentMode = TraverseMode.CAR;
+    }
   }
 
   public void setTimeSeconds(long seconds) {

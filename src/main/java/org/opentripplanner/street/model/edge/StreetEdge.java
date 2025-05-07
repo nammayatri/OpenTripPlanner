@@ -86,9 +86,9 @@ public class StreetEdge
   private float bicycleSafetyFactor;
 
   /**
-   * walkSafetyFactor = length * walkSafetyFactor. For example, a 100m street with a safety
-   * factor of 2.0 will be considered in term of safety cost as the same as a 200m street with a
-   * safety factor of 1.0.
+   * walkSafetyFactor = length * walkSafetyFactor. For example, a 100m street with a safety factor
+   * of 2.0 will be considered in term of safety cost as the same as a 200m street with a safety
+   * factor of 1.0.
    */
   private float walkSafetyFactor;
 
@@ -310,18 +310,18 @@ public class StreetEdge
   public String toString() {
     return (
       "StreetEdge(" +
-      name +
-      ", " +
-      fromv +
-      " -> " +
-      tov +
-      " length=" +
-      this.getDistanceMeters() +
-      " carSpeed=" +
-      this.getCarSpeed() +
-      " permission=" +
-      this.getPermission() +
-      ")"
+        name +
+        ", " +
+        fromv +
+        " -> " +
+        tov +
+        " length=" +
+        this.getDistanceMeters() +
+        " carSpeed=" +
+        this.getCarSpeed() +
+        " permission=" +
+        this.getPermission() +
+        ")"
     );
   }
 
@@ -423,6 +423,19 @@ public class StreetEdge
       }
     }
 
+    if (
+      canDropOffAfterDriving(s0) &&
+        !getPermission().allows(TraverseMode.CAR) &&
+        canTraverse(TraverseMode.WALK)
+    ) {
+      StateEditor dropOff = doTraverse(s0, TraverseMode.WALK, false);
+      if (dropOff != null) {
+        dropOffAfterDriving(s0, dropOff);
+        // Only the walk state is returned, since traversing by car was not possible
+        return dropOff.makeStateArray();
+      }
+    }
+
     return State.ofNullable(state);
   }
 
@@ -493,16 +506,16 @@ public class StreetEdge
       if (turnRestriction.type == TurnRestrictionType.ONLY_TURN) {
         if (
           !e.isEquivalentTo(turnRestriction.to) &&
-          turnRestriction.modes.contains(mode) &&
-          turnRestriction.active(state.getTimeSeconds())
+            turnRestriction.modes.contains(mode) &&
+            turnRestriction.active(state.getTimeSeconds())
         ) {
           return false;
         }
       } else {
         if (
           e.isEquivalentTo(turnRestriction.to) &&
-          turnRestriction.modes.contains(mode) &&
-          turnRestriction.active(state.getTimeSeconds())
+            turnRestriction.modes.contains(mode) &&
+            turnRestriction.active(state.getTimeSeconds())
         ) {
           return false;
         }
@@ -970,11 +983,11 @@ public class StreetEdge
   }
 
   /**
-   * A very special case: an arriveBy rental search has started in a no-drop-off zone
-   * we don't know yet which rental network we will end up using.
+   * A very special case: an arriveBy rental search has started in a no-drop-off zone we don't know
+   * yet which rental network we will end up using.
    * <p>
-   * So we speculatively assume that we can rent any by setting the network in the state data
-   * to null.
+   * So we speculatively assume that we can rent any by setting the network in the state data to
+   * null.
    * <p>
    * When we then leave the no drop off zone on foot we generate a state for each network that the
    * zone applies to where we pick up a vehicle with a specific network.
@@ -1003,29 +1016,28 @@ public class StreetEdge
   }
 
   /**
-   * This is the state that starts a backwards search inside a restricted zone
-   * (no drop off, no traversal or outside business area) and is walking towards finding a rental
-   * vehicle. Once we are leaving a geofencing zone or are entering a business area we want to
-   * speculatively pick up a vehicle a ride towards an edge where there is one parked.
+   * This is the state that starts a backwards search inside a restricted zone (no drop off, no
+   * traversal or outside business area) and is walking towards finding a rental vehicle. Once we
+   * are leaving a geofencing zone or are entering a business area we want to speculatively pick up
+   * a vehicle a ride towards an edge where there is one parked.
    */
   private boolean leavesZoneWithRentalRestrictionsWhenHavingRented(State s0) {
     return (
       s0.getVehicleRentalState() == VehicleRentalState.HAVE_RENTED &&
-      !fromv.rentalRestrictions().hasRestrictions() &&
-      tov.rentalRestrictions().hasRestrictions()
+        !fromv.rentalRestrictions().hasRestrictions() &&
+        tov.rentalRestrictions().hasRestrictions()
     );
   }
 
   /**
-   * If the reverse search has started in a no-drop off rental zone and you are exiting
-   * it .
+   * If the reverse search has started in a no-drop off rental zone and you are exiting it .
    */
   private boolean hasStartedWalkingInNoDropOffZoneAndIsExitingIt(State s0) {
     return (
       s0.currentMode() == TraverseMode.WALK &&
-      !s0.stateData.noRentalDropOffZonesAtStartOfReverseSearch.isEmpty() &&
-      fromv.rentalRestrictions().noDropOffNetworks().isEmpty() &&
-      !tov.rentalRestrictions().noDropOffNetworks().isEmpty()
+        !s0.stateData.noRentalDropOffZonesAtStartOfReverseSearch.isEmpty() &&
+        fromv.rentalRestrictions().noDropOffNetworks().isEmpty() &&
+        !tov.rentalRestrictions().noDropOffNetworks().isEmpty()
     );
   }
 
@@ -1191,12 +1203,12 @@ public class StreetEdge
     var time = getDistanceMeters() / speed;
     var weight =
       time *
-      StreetEdgeReluctanceCalculator.computeReluctance(
-        preferences,
-        traverseMode,
-        walkingBike,
-        isStairs()
-      );
+        StreetEdgeReluctanceCalculator.computeReluctance(
+          preferences,
+          traverseMode,
+          walkingBike,
+          isStairs()
+        );
     return new TraversalCosts(time, weight);
   }
 
@@ -1258,12 +1270,12 @@ public class StreetEdge
       time = getEffectiveWalkDistance() / speed;
       weight =
         (getEffectiveBikeDistance() / speed) *
-        StreetEdgeReluctanceCalculator.computeWheelchairReluctance(
-          preferences,
-          getMaxSlope(),
-          isWheelchairAccessible(),
-          isStairs()
-        );
+          StreetEdgeReluctanceCalculator.computeWheelchairReluctance(
+            preferences,
+            getMaxSlope(),
+            isWheelchairAccessible(),
+            isStairs()
+          );
     } else {
       if (walkingBike) {
         // take slopes into account when walking bikes
@@ -1277,9 +1289,9 @@ public class StreetEdge
         time = getEffectiveWalkDistance() / speed;
         weight =
           getEffectiveWalkSafetyDistance() *
-          preferences.walk().safetyFactor() +
-          getEffectiveWalkDistance() *
-          (1 - preferences.walk().safetyFactor());
+            preferences.walk().safetyFactor() +
+            getEffectiveWalkDistance() *
+              (1 - preferences.walk().safetyFactor());
         weight /= speed;
       }
 
@@ -1327,7 +1339,8 @@ public class StreetEdge
   }
 
   /** Tuple to return time and weight from calculation */
-  private record TraversalCosts(double time, double weight) {}
+  private record TraversalCosts(double time, double weight) {
+  }
 
   /**
    * The angles of the first (in) segment and last (out) segment of a LineString, encoded in one
@@ -1357,9 +1370,9 @@ public class StreetEdge
     }
 
     /**
-     * Conversion from radians to internal representation as a single signed byte.
-     * We also reorient the angles since OTP seems to use South as a reference
-     * while the azimuth functions use North.
+     * Conversion from radians to internal representation as a single signed byte. We also reorient
+     * the angles since OTP seems to use South as a reference while the azimuth functions use
+     * North.
      * FIXME Use only North as a reference, not a mix of North and South!
      * Range restriction happens automatically due to Java signed overflow behavior.
      * 180 degrees exists as a negative rather than a positive due to the integer range.

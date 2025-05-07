@@ -1873,6 +1873,9 @@ enum Mode {
     """CAR"""
     CAR
 
+    """CAR_TRANSIT"""
+    CAR_TRANSIT
+
     """COACH"""
     COACH
 

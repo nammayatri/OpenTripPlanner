@@ -375,43 +375,48 @@ public class EnumTypes {
       "bike_park",
       StreetMode.BIKE_TO_PARK,
       "Bike to a bike parking area, " +
-      "then walk the rest of the way. Direct mode and access mode only."
+        "then walk the rest of the way. Direct mode and access mode only."
     )
     .value(
       "bike_rental",
       StreetMode.BIKE_RENTAL,
       "Walk to a bike rental point, " +
-      "bike to a bike rental drop-off point, and walk the rest of the way. This can include " +
-      "bike rental at fixed locations or free-floating services."
+        "bike to a bike rental drop-off point, and walk the rest of the way. This can include " +
+        "bike rental at fixed locations or free-floating services."
     )
     .value(
       "scooter_rental",
       StreetMode.SCOOTER_RENTAL,
       "Walk to a scooter " +
-      "rental point, ride a scooter to a scooter rental drop-off point, and walk the " +
-      "rest of the way. This can include scooter rental at fixed locations or " +
-      "free-floating services."
+        "rental point, ride a scooter to a scooter rental drop-off point, and walk the " +
+        "rest of the way. This can include scooter rental at fixed locations or " +
+        "free-floating services."
     )
     .value("car", StreetMode.CAR, "Car only. Direct mode only.")
     .value(
       "car_park",
       StreetMode.CAR_TO_PARK,
       "Start in the car, drive to a " +
-      "parking area, and walk the rest of the way. Direct mode and access mode only."
+        "parking area, and walk the rest of the way. Direct mode and access mode only."
+    )
+    .value(
+      "car_transit",
+      StreetMode.CAR_TRANSIT,
+      "Car + transit"
     )
     .value(
       "car_pickup",
       StreetMode.CAR_PICKUP,
       "Walk to a pickup point along " +
-      "the road, drive to a drop-off point along the road, and walk the rest of the way. " +
-      "This can include various taxi-services or kiss & ride."
+        "the road, drive to a drop-off point along the road, and walk the rest of the way. " +
+        "This can include various taxi-services or kiss & ride."
     )
     .value(
       "flexible",
       StreetMode.FLEXIBLE,
       "Walk to an eligible pickup area for " +
-      "flexible transportation, ride to an eligible drop-off area and then walk the rest of " +
-      "the way."
+        "flexible transportation, ride to an eligible drop-off area and then walk the rest of " +
+        "the way."
     )
     .build();
 
@@ -523,5 +528,6 @@ public class EnumTypes {
   private record DocumentedEnumMapping<E extends Enum<E>>(
     String apiName,
     DocumentedEnum<E> internal
-  ) {}
+  ) {
+  }
 }

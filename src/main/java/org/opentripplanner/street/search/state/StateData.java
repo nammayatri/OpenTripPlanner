@@ -49,7 +49,10 @@ public class StateData implements Cloneable {
 
   public RentalFormFactor rentalVehicleFormFactor;
 
-  /** This boolean is set to true upon transition from a normal street to a no-through-traffic street. */
+  /**
+   * This boolean is set to true upon transition from a normal street to a no-through-traffic
+   * street.
+   */
   protected boolean enteredNoThroughTrafficArea;
 
   protected boolean insideNoRentalDropOffArea = false;
@@ -64,7 +67,7 @@ public class StateData implements Cloneable {
         // when cycling all the way or to a stop, you start on your own bike
         case BIKE, BIKE_TO_PARK -> TraverseMode.BICYCLE;
         // when driving (not car rental) you start in your own car or your driver's car
-        case CAR, CAR_TO_PARK, CAR_PICKUP, CAR_HAILING -> TraverseMode.CAR;
+        case CAR, CAR_TO_PARK, CAR_PICKUP, CAR_HAILING, CAR_TRANSIT -> TraverseMode.CAR;
       };
   }
 
@@ -95,9 +98,9 @@ public class StateData implements Cloneable {
   }
 
   /**
-   * Returns an initial StateData based on the options from the {@link StreetSearchRequest}. This returns always
-   * only a single state, which is considered the "base case", should there be several possible for
-   * the given {@code request}.
+   * Returns an initial StateData based on the options from the {@link StreetSearchRequest}. This
+   * returns always only a single state, which is considered the "base case", should there be
+   * several possible for the given {@code request}.
    */
   public static StateData getBaseCaseStateData(StreetSearchRequest request) {
     var rentalPreferences = request.preferences().rental(request.mode());
@@ -113,7 +116,7 @@ public class StateData implements Cloneable {
     var baseCaseDatas =
       switch (request.mode()) {
         case WALK, BIKE, BIKE_TO_PARK, CAR, CAR_TO_PARK, FLEXIBLE, NOT_SET -> stateDatas;
-        case CAR_PICKUP, CAR_HAILING -> stateDatas
+        case CAR_PICKUP, CAR_HAILING, CAR_TRANSIT -> stateDatas
           .stream()
           .filter(d -> d.carPickupState == CarPickupState.IN_CAR)
           .toList();
@@ -123,7 +126,7 @@ public class StateData implements Cloneable {
               .stream()
               .filter(d ->
                 d.vehicleRentalState == RENTING_FROM_STATION ||
-                d.vehicleRentalState == RENTING_FLOATING
+                  d.vehicleRentalState == RENTING_FLOATING
               )
               .toList();
           } else {
@@ -153,11 +156,18 @@ public class StateData implements Cloneable {
     //   - CAR / IN_CAR where pickup happens directly at the bus stop
     //   - WALK / WALK_FROM_DROP_OFF or WALK_TO_PICKUP for cases with an initial walk
     // For forward/reverse searches to be symmetric both initial states need to be created.
-    if (requestMode.includesPickup()) {
+    if (requestMode.includesPickup() || requestMode.includesCarTransit()) {
       var inCarPickupStateData = proto.clone();
       inCarPickupStateData.carPickupState = CarPickupState.IN_CAR;
       inCarPickupStateData.currentMode = TraverseMode.CAR;
       res.add(inCarPickupStateData);
+      if (requestMode.includesPickup()) {
+        var walkingPickupStateData = proto.clone();
+        walkingPickupStateData.carPickupState =
+          arriveBy ? CarPickupState.WALK_FROM_DROP_OFF : CarPickupState.WALK_TO_PICKUP;
+        walkingPickupStateData.currentMode = TraverseMode.WALK;
+        res.add(walkingPickupStateData);
+      }
     }
     // Vehicle rental searches may end in four states (see State#isFinal()):
     // When searching forward:
@@ -215,14 +225,15 @@ public class StateData implements Cloneable {
       case CAR_RENTAL -> RentalFormFactor.CAR;
       // there is no default here, so you get a compiler error when you add a new value to the enum
       case NOT_SET,
-        WALK,
-        BIKE,
-        BIKE_TO_PARK,
-        CAR,
-        CAR_TO_PARK,
-        CAR_PICKUP,
-        CAR_HAILING,
-        FLEXIBLE -> throw new IllegalStateException(
+           CAR_TRANSIT,
+           WALK,
+           BIKE,
+           BIKE_TO_PARK,
+           CAR,
+           CAR_TO_PARK,
+           CAR_PICKUP,
+           CAR_HAILING,
+           FLEXIBLE -> throw new IllegalStateException(
         "Cannot convert street mode %s to a form factor".formatted(streetMode)
       );
     };
