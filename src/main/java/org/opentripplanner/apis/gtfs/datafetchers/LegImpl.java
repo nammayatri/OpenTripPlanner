@@ -311,4 +311,14 @@ public class LegImpl implements GraphQLDataFetchers.GraphQLLeg {
   public DataFetcher<Double> accessibilityScore() {
     return environment -> NumberMapper.toDouble(getSource(environment).accessibilityScore());
   }
+
+  @Override
+  public DataFetcher<WalkStep> entrance() {
+    return environment -> getSource(environment).getEntrance();
+  }
+
+  @Override
+  public DataFetcher<WalkStep> exit() {
+    return environment -> getSource(environment).getExit();
+  }
 }

@@ -1739,6 +1739,12 @@ type Leg {
     """
     intermediatePlace: Boolean
 
+    "The entrance gate into the station if any"
+    entrance: step
+
+    "The exit gate into the station if any"
+    exit: step
+
     "The turn-by-turn navigation instructions."
     steps: [step]
 

@@ -42,6 +42,8 @@ public class StatesToWalkStepsMapper {
   private static final double MAX_ZAG_DISTANCE = 30;
 
   private final double ellipsoidToGeoidDifference;
+  private WalkStep entrance = null;
+  private WalkStep exit = null;
   private final StreetNotesService streetNotesService;
 
   private final List<State> states;
@@ -524,7 +526,7 @@ public class StatesToWalkStepsMapper {
     RelativeDirection direction,
     Edge edge
   ) {
-    addStep(
+    var walkStep = addStep(
       createWalkStep(forwardState, backState)
         .withDirectionText(name)
         .withBogusName(false)
@@ -533,12 +535,18 @@ public class StatesToWalkStepsMapper {
         .addDistance(edge.getDistanceMeters())
     );
 
+    if (direction == ENTER_STATION) {
+      this.entrance = walkStep.build();
+    }
+    if (direction == EXIT_STATION) {
+      this.exit = walkStep.build();
+    }
     lastAngle = DirectionUtils.getLastAngle(edge.getGeometry());
     distance = edge.getDistanceMeters();
     current.addEdge(edge);
   }
 
-  private WalkStepBuilder createWalkStep(State forwardState, State backState) {
+ private WalkStepBuilder createWalkStep(State forwardState, State backState) {
     Edge en = forwardState.getBackEdge();
 
     return WalkStep
@@ -557,5 +565,13 @@ public class StatesToWalkStepsMapper {
         )
       )
       .addStreetNotes(streetNotesService.getNotes(forwardState));
+  }
+
+  public WalkStep getEntrance() {
+    return entrance;
+  }
+
+  public WalkStep getExit() {
+    return exit;
   }
 }
