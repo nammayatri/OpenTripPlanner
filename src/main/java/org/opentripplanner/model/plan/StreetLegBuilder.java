@@ -25,6 +25,8 @@ public class StreetLegBuilder {
   private String vehicleRentalNetwork;
   private Float accessibilityScore;
   private Set<StreetNote> streetNotes = new HashSet<>();
+  private WalkStep entrance;
+  private WalkStep exit;
 
   protected StreetLegBuilder() {}
 
@@ -44,7 +46,9 @@ public class StreetLegBuilder {
       .withRentedVehicle(leg.getRentedVehicle())
       .withVehicleRentalNetwork(leg.getVehicleRentalNetwork())
       .withAccessibilityScore(leg.accessibilityScore())
-      .withStreetNotes(leg.getStreetNotes());
+      .withStreetNotes(leg.getStreetNotes())
+      .withEntrance(leg.getEntrance())
+      .withExit(leg.getExit());
   }
 
   public StreetLeg build() {
@@ -109,6 +113,14 @@ public class StreetLegBuilder {
 
   public Set<StreetNote> getStreetNotes() {
     return streetNotes;
+  }
+
+  public WalkStep getEntrance() {
+    return entrance;
+  }
+
+  public WalkStep getExit() {
+    return exit;
   }
 
   public StreetLegBuilder withMode(TraverseMode mode) {
@@ -183,6 +195,20 @@ public class StreetLegBuilder {
 
   public StreetLegBuilder withStreetNotes(Set<StreetNote> notes) {
     streetNotes = Set.copyOf(notes);
+    return this;
+  }
+
+  public StreetLegBuilder withEntrance(WalkStep entrance) {
+    if (entrance != null) {
+      this.entrance = entrance;
+    }
+    return this;
+  }
+
+  public StreetLegBuilder withExit(WalkStep exit) {
+    if (exit != null) {
+      this.exit = exit;
+    }
     return this;
   }
 }

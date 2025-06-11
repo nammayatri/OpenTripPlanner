@@ -373,6 +373,8 @@ public class GraphPathToItineraryMapper {
       ellipsoidToGeoidDifference
     );
     List<WalkStep> walkSteps = statesToWalkStepsMapper.generateWalkSteps();
+    WalkStep entrance = statesToWalkStepsMapper.getEntrance();
+    WalkStep exit = statesToWalkStepsMapper.getExit();
 
     /* For the from/to vertices to be in the correct place for vehicle parking
      * the state for actually parking (traversing the VehicleParkEdge) is excluded
@@ -397,6 +399,8 @@ public class GraphPathToItineraryMapper {
       .withElevationProfile(
         makeElevation(edges, firstState.getPreferences().system().geoidElevation())
       )
+      .withEntrance(entrance)
+      .withExit(exit)
       .withWalkSteps(walkSteps)
       .withRentedVehicle(firstState.isRentingVehicle())
       .withWalkingBike(false);

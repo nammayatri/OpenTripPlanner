@@ -480,4 +480,12 @@ public interface Leg {
       return place.stop.getFareZones().stream();
     }
   }
+
+  default WalkStep getEntrance() {
+    return null;
+  }
+
+  default WalkStep getExit() {
+    return null;
+  }
 }

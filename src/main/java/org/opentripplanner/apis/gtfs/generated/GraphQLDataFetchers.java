@@ -491,6 +491,10 @@ public class GraphQLDataFetchers {
     public DataFetcher<Trip> trip();
 
     public DataFetcher<Boolean> walkingBike();
+
+    public DataFetcher<WalkStep> entrance();
+
+    public DataFetcher<WalkStep> exit();
   }
 
   /** A span of time. */
