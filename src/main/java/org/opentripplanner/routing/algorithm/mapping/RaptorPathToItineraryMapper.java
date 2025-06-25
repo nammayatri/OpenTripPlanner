@@ -114,12 +114,15 @@ public class RaptorPathToItineraryMapper<T extends TripSchedule> {
       // Map transfer leg
       else if (pathLeg.isTransferLeg()) {
         if (includeTransferInItinerary(transitLeg)) {
-          legs.addAll(
-            mapTransferLeg(
-              pathLeg.asTransferLeg(),
-              transferMode == StreetMode.BIKE ? TraverseMode.BICYCLE : TraverseMode.WALK
-            )
-          );
+          Transfer transfer = ((DefaultRaptorTransfer) pathLeg.asTransferLeg().transfer()).transfer();
+          if (transfer.getDistanceMeters() > 0) {
+            legs.addAll(
+              mapTransferLeg(
+                pathLeg.asTransferLeg(),
+                transferMode == StreetMode.BIKE ? TraverseMode.BICYCLE : TraverseMode.WALK
+              )
+            );
+          }
         }
       }
 
