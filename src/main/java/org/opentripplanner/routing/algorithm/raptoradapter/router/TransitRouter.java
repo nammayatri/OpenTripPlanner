@@ -17,6 +17,7 @@ import org.opentripplanner.framework.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.model.plan.Itinerary;
 import org.opentripplanner.raptor.RaptorService;
 import org.opentripplanner.raptor.api.path.RaptorPath;
+import org.opentripplanner.raptor.api.request.RaptorRequest;
 import org.opentripplanner.raptor.api.response.RaptorResponse;
 import org.opentripplanner.routing.algorithm.mapping.RaptorPathToItineraryMapper;
 import org.opentripplanner.routing.algorithm.raptoradapter.router.street.AccessEgressPenaltyDecorator;
@@ -56,6 +57,7 @@ public class TransitRouter {
   private final ZonedDateTime transitSearchTimeZero;
   private final AdditionalSearchDays additionalSearchDays;
   private final TemporaryVerticesContainer temporaryVerticesContainer;
+  private Duration duration = null;
 
   private TransitRouter(
     RouteRequest request,
@@ -98,6 +100,44 @@ public class TransitRouter {
     }
   }
 
+  private RaptorResponse<TripSchedule> runTransitSearchWithRetry(
+    RaptorService<TripSchedule> raptorService,
+    RaptorRoutingRequestTransitData requestTransitDataProvider
+  ) {
+    var currentDuration = this.duration;
+    while (currentDuration == null || (currentDuration != null && currentDuration.compareTo(Duration.ofHours(3)) <= 0)) {
+      var accessEgresses = fetchAccessEgresses(currentDuration);
+
+      debugTimingAggregator.finishedAccessEgress(
+        accessEgresses.getAccesses().size(),
+        accessEgresses.getEgresses().size()
+      );
+
+      var raptorRequest = RaptorRequestMapper.<TripSchedule>mapRequest(
+        request,
+        transitSearchTimeZero,
+        serverContext.raptorConfig().isMultiThreaded(),
+        accessEgresses.getAccesses(),
+        accessEgresses.getEgresses(),
+        serverContext.meterRegistry()
+      );
+
+      var transitResponse = raptorService.route(raptorRequest, requestTransitDataProvider);
+
+      checkIfTransitConnectionExists(transitResponse, currentDuration);
+
+      if (!transitResponse.noConnectionFound()) {
+        return transitResponse;
+      }
+
+      // Double the duration for retry
+      currentDuration = currentDuration.multipliedBy(2L);
+    }
+    throw new RoutingValidationException(
+      List.of(new RoutingError(RoutingErrorCode.NO_TRANSIT_CONNECTION, null))
+    );
+  }
+
   private TransitRouterResult route() {
     if (!request.journey().transit().enabled()) {
       return new TransitRouterResult(List.of(), null);
@@ -116,9 +156,10 @@ public class TransitRouter {
     var requestTransitDataProvider = createRequestTransitDataProvider(transitLayer);
 
     debugTimingAggregator.finishedPatternFiltering();
+    var raptorService = new RaptorService<>(serverContext.raptorConfig());
 
     // this fetches all the accessable stops from the source and the stops from which we can reach the destination
-    var accessEgresses = fetchAccessEgresses();
+    var accessEgresses = fetchAccessEgresses(duration);
 
     debugTimingAggregator.finishedAccessEgress(
       accessEgresses.getAccesses().size(),
@@ -136,10 +177,8 @@ public class TransitRouter {
     );
 
     // Route transit
-    var raptorService = new RaptorService<>(serverContext.raptorConfig());
-    var transitResponse = raptorService.route(raptorRequest, requestTransitDataProvider);
-
-    checkIfTransitConnectionExists(transitResponse);
+//    var transitResponse = raptorService.route(raptorRequest, requestTransitDataProvider);
+    var transitResponse = runTransitSearchWithRetry(raptorService, requestTransitDataProvider);
 
     debugTimingAggregator.finishedRaptorSearch();
 
@@ -175,7 +214,7 @@ public class TransitRouter {
     return new TransitRouterResult(itineraries, transitResponse.requestUsed().searchParams());
   }
 
-  private AccessEgresses fetchAccessEgresses() {
+  private AccessEgresses fetchAccessEgresses(Duration duration) {
     final var asyncAccessList = new ArrayList<DefaultAccessEgress>();
     final var asyncEgressList = new ArrayList<DefaultAccessEgress>();
 
@@ -185,16 +224,16 @@ public class TransitRouter {
         //       log-trace-parameters-propagation and graceful timeout handling here.
         CompletableFuture
           .allOf(
-            CompletableFuture.runAsync(() -> asyncAccessList.addAll(fetchAccess())),
-            CompletableFuture.runAsync(() -> asyncEgressList.addAll(fetchEgress()))
+            CompletableFuture.runAsync(() -> asyncAccessList.addAll(fetchAccess(duration))),
+            CompletableFuture.runAsync(() -> asyncEgressList.addAll(fetchEgress(duration)))
           )
           .join();
       } catch (CompletionException e) {
         RoutingValidationException.unwrapAndRethrowCompletionException(e);
       }
     } else {
-      asyncAccessList.addAll(fetchAccess());
-      asyncEgressList.addAll(fetchEgress());
+      asyncAccessList.addAll(fetchAccess(duration));
+      asyncEgressList.addAll(fetchEgress(duration));
     }
 
     verifyAccessEgress(asyncAccessList, asyncEgressList);
@@ -212,21 +251,21 @@ public class TransitRouter {
     return new AccessEgresses(accessList, egressList);
   }
 
-  private Collection<DefaultAccessEgress> fetchAccess() {
+  private Collection<DefaultAccessEgress> fetchAccess(Duration duration) {
     debugTimingAggregator.startedAccessCalculating();
-    var list = fetchAccessEgresses(ACCESS);
+    var list = fetchAccessEgresses(ACCESS, duration);
     debugTimingAggregator.finishedAccessCalculating();
     return list;
   }
 
-  private Collection<DefaultAccessEgress> fetchEgress() {
+  private Collection<DefaultAccessEgress> fetchEgress(Duration duration) {
     debugTimingAggregator.startedEgressCalculating();
-    var list = fetchAccessEgresses(EGRESS);
+    var list = fetchAccessEgresses(EGRESS, duration);
     debugTimingAggregator.finishedEgressCalculating();
     return list;
   }
 
-  private Collection<DefaultAccessEgress> fetchAccessEgresses(AccessEgressType type) {
+  private Collection<DefaultAccessEgress> fetchAccessEgresses(AccessEgressType type, Duration duration) {
     var streetRequest = type.isAccess() ? request.journey().access() : request.journey().egress();
 
     // Prepare access/egress lists
@@ -241,15 +280,17 @@ public class TransitRouter {
       });
     }
 
-    Duration durationLimit = accessRequest
-      .preferences()
-      .street()
-      .accessEgress()
-      .maxDuration()
-      .valueOf(streetRequest.mode());
+    Duration durationLimit = duration != null ? duration :
+      accessRequest
+        .preferences()
+        .street()
+        .accessEgress()
+        .maxDuration()
+        .valueOf(streetRequest.mode());
     if (streetRequest.mode() == StreetMode.CAR_TRANSIT) {
       durationLimit = dynamicDurationForCar();
     }
+    this.duration = durationLimit;
     int stopCountLimit = accessRequest.preferences().street().accessEgress().maxStopCount();
 
     var nearbyStops = AccessEgressRouter.streetSearch(
@@ -350,11 +391,13 @@ public class TransitRouter {
    * If no paths or search window is found, we assume there is no transit connection between the
    * origin and destination.
    */
-  private void checkIfTransitConnectionExists(RaptorResponse<TripSchedule> response) {
+  private void checkIfTransitConnectionExists(RaptorResponse<TripSchedule> response, Duration duration) {
     if (response.noConnectionFound()) {
-      throw new RoutingValidationException(
-        List.of(new RoutingError(RoutingErrorCode.NO_TRANSIT_CONNECTION, null))
-      );
+      if (duration != null && duration.compareTo(Duration.ofHours(3)) > 0) {
+        throw new RoutingValidationException(
+          List.of(new RoutingError(RoutingErrorCode.NO_TRANSIT_CONNECTION, null))
+        );
+      }
     }
   }
 
@@ -397,4 +440,5 @@ public class TransitRouter {
       request.journey().egress().mode()
     );
   }
+
 }
