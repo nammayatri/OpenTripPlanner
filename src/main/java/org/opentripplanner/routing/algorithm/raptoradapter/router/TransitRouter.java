@@ -58,6 +58,22 @@ public class TransitRouter {
   private final AdditionalSearchDays additionalSearchDays;
   private final TemporaryVerticesContainer temporaryVerticesContainer;
   private Duration duration = null;
+  private static final double BANGALORE_MIN_LAT = 12.500;
+  private static final double BANGALORE_MAX_LAT = 13.500;
+  private static final double BANGALORE_MIN_LON = 77.000;
+  private static final double BANGALORE_MAX_LON = 78.200;
+
+
+  private boolean isBangaloreArea(double lat, double lon) {
+    return lat >= BANGALORE_MIN_LAT && lat <= BANGALORE_MAX_LAT &&
+           lon >= BANGALORE_MIN_LON && lon <= BANGALORE_MAX_LON;
+  }
+
+  private boolean isBangaloreTrip() {
+    var from = request.from().getCoordinate();
+    var to = request.to().getCoordinate();
+    return isBangaloreArea(from.getY(), from.getX()) && isBangaloreArea(to.getY(), to.getX());
+  }
 
   private TransitRouter(
     RouteRequest request,
@@ -105,8 +121,37 @@ public class TransitRouter {
     RaptorRoutingRequestTransitData requestTransitDataProvider
   ) {
     var currentDuration = this.duration;
+    if (isBangaloreTrip()) {
+      Duration[] bangaloreDurations = { Duration.ofHours(6), Duration.ofHours(12) };
+      for (Duration durationOption : bangaloreDurations) {
+        currentDuration = durationOption;
+        LOG.debug("The current duration is {}", currentDuration);
+        var accessEgresses = fetchAccessEgresses(currentDuration);
+        debugTimingAggregator.finishedAccessEgress(
+          accessEgresses.getAccesses().size(),
+          accessEgresses.getEgresses().size()
+        );
+        var raptorRequest = RaptorRequestMapper.<TripSchedule>mapRequest(
+          request,
+          transitSearchTimeZero,
+          serverContext.raptorConfig().isMultiThreaded(),
+          accessEgresses.getAccesses(),
+          accessEgresses.getEgresses(),
+          serverContext.meterRegistry()
+        );
+        var transitResponse = raptorService.route(raptorRequest, requestTransitDataProvider);
+        checkIfTransitConnectionExists(transitResponse, currentDuration);
+        if (!transitResponse.noConnectionFound()) {
+          return transitResponse;
+        }
+      }
+      throw new RoutingValidationException(
+        List.of(new RoutingError(RoutingErrorCode.NO_TRANSIT_CONNECTION, null))
+      );
+    }
     while (currentDuration == null || (currentDuration != null && currentDuration.compareTo(Duration.ofHours(3)) <= 0)) {
       var accessEgresses = fetchAccessEgresses(currentDuration);
+      LOG.debug("The current duration is {}", currentDuration);
 
       debugTimingAggregator.finishedAccessEgress(
         accessEgresses.getAccesses().size(),
