@@ -145,7 +145,7 @@ public class TransitRouter {
 
     Collection<RaptorPath<TripSchedule>> paths = transitResponse.paths();
 
-    if (OTPFeature.OptimizeTransfers.isOn() && !transitResponse.containsUnknownPaths()) {
+    if (!request.getNoOptimization() && OTPFeature.OptimizeTransfers.isOn() && !transitResponse.containsUnknownPaths()) {
       var service = TransferOptimizationServiceConfigurator.createOptimizeTransferService(
         transitLayer::getStopByIndex,
         requestTransitDataProvider.stopNameResolver(),

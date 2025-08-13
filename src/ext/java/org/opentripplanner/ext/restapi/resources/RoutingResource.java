@@ -346,6 +346,9 @@ public abstract class RoutingResource {
   @QueryParam("allowKeepingRentedBicycleAtDestination")
   protected Boolean allowKeepingRentedBicycleAtDestination;
 
+  @QueryParam("noOptimization")
+  protected Boolean noOptimization;
+
   @QueryParam("keepingRentedBicycleAtDestinationCost")
   protected Double keepingRentedBicycleAtDestinationCost;
 

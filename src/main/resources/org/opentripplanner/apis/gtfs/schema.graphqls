@@ -3268,6 +3268,13 @@ type QueryType {
         used correctly to get meaningful itineraries).
         """
         startTransitTripId: String @deprecated(reason: "Not implemented in OTP2")
+
+        """
+        If set to true sends non optimized routes also
+        Was created to get more routes that are possible for certain use cases
+        Default value: false
+        """
+        noOptimization: Boolean
     ): Plan @async
 }
 

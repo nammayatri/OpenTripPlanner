@@ -163,7 +163,8 @@ public class Graph implements Serializable {
   }
 
   /**
-   * Fetching a vertex by its by label. This is convenient in tests and such, but avoid using in general.
+   * Fetching a vertex by its by label. This is convenient in tests and such, but avoid using in
+   * general.
    *
    * @see VertexLabel
    */
@@ -176,6 +177,7 @@ public class Graph implements Serializable {
   /**
    * Converts the input to a string-based label and looks it up in the graph. Remember that there
    * are other, non-string vertex labels for which this method will not work.
+   *
    * @see VertexLabel
    */
   @VisibleForTesting
@@ -284,6 +286,7 @@ public class Graph implements Serializable {
 
   /**
    * Get streetIndex, safe to use while routing, but do not use during graph build.
+   *
    * @see #getStreetIndexSafe(StopModel)
    */
   public StreetIndex getStreetIndex() {
@@ -291,8 +294,8 @@ public class Graph implements Serializable {
   }
 
   /**
-   * Get streetIndex during graph build, both OSM street data and transit data must be loaded
-   * before calling this.
+   * Get streetIndex during graph build, both OSM street data and transit data must be loaded before
+   * calling this.
    */
   public StreetIndex getStreetIndexSafe(StopModel stopModel) {
     indexIfNotIndexed(stopModel);
@@ -301,6 +304,7 @@ public class Graph implements Serializable {
 
   /**
    * Get VertexLinker, safe to use while routing, but do not use during graph build.
+   *
    * @see #getLinkerSafe(StopModel)
    */
   public VertexLinker getLinker() {

@@ -54,6 +54,8 @@ public class RouteRequest implements Cloneable, Serializable {
 
   private GenericLocation from;
 
+  private Boolean noOptimization = false;
+
   private GenericLocation to;
 
   private List<PassThroughPoint> passThroughPoints = Collections.emptyList();
@@ -262,6 +264,12 @@ public class RouteRequest implements Cloneable, Serializable {
     this.to = to;
   }
 
+  public void setNoOptimization(Boolean noOptimization) {
+    if (noOptimization != null) {
+      this.noOptimization = noOptimization;
+    }
+  }
+
   public List<PassThroughPoint> getPassThroughPoints() {
     return passThroughPoints;
   }
@@ -403,6 +411,10 @@ public class RouteRequest implements Cloneable, Serializable {
 
   public void setNumItineraries(int numItineraries) {
     this.numItineraries = numItineraries;
+  }
+
+  public Boolean getNoOptimization(){
+    return this.noOptimization;
   }
 
   public String toString() {

@@ -54,6 +54,7 @@ public class RouteRequestMapper {
 
     callWith.argument("from", (Map<String, Object> v) -> request.setFrom(toGenericLocation(v)));
     callWith.argument("to", (Map<String, Object> v) -> request.setTo(toGenericLocation(v)));
+    request.setNoOptimization(environment.getArgument("noOptimization"));
 
     request.setDateTime(
       environment.getArgument("date"),
