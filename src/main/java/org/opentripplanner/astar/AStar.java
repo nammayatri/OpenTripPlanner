@@ -157,7 +157,6 @@ public class AStar<
     Collection<Edge> edges = arriveBy ? u_vertex.getIncoming() : u_vertex.getOutgoing();
     for (Edge edge : edges) {
       if (
-        shouldSkipEdge(u_vertex) ||
         (skipEdgeStrategy != null && skipEdgeStrategy.shouldSkipEdge(u, edge))
       ) {
         continue;
