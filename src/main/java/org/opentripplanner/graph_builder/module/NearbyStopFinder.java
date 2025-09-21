@@ -20,6 +20,8 @@ import org.opentripplanner.ext.dataoverlay.routing.DataOverlayContext;
 import org.opentripplanner.ext.flex.trip.FlexTrip;
 import org.opentripplanner.framework.application.OTPFeature;
 import org.opentripplanner.framework.application.OTPRequestTimeoutException;
+import org.opentripplanner.routing.algorithm.raptoradapter.router.street.AccessEgressCacheKey;
+import org.opentripplanner.routing.algorithm.raptoradapter.router.street.AccessEgressCacheService;
 import org.opentripplanner.routing.api.request.RouteRequest;
 import org.opentripplanner.routing.api.request.StreetMode;
 import org.opentripplanner.routing.api.request.preference.WalkPreferences;
@@ -60,6 +62,7 @@ public class NearbyStopFinder {
   private final Duration durationLimit;
   private final int maxStopCount;
   private final DataOverlayContext dataOverlayContext;
+  private final AccessEgressCacheService cacheService;
 
   private DirectGraphFinder directGraphFinder;
 
@@ -76,11 +79,30 @@ public class NearbyStopFinder {
     DataOverlayContext dataOverlayContext,
     boolean useStreets
   ) {
+    this(transitService, durationLimit, maxStopCount, dataOverlayContext, useStreets, new AccessEgressCacheService());
+  }
+
+  /**
+   * Construct a NearbyStopFinder with a custom cache service.
+   *
+   * @param useStreets if true, search via the street network instead of using straight-line
+   *                   distance.
+   * @param cacheService the cache service to use for caching nearby stop results
+   */
+  public NearbyStopFinder(
+    TransitService transitService,
+    Duration durationLimit,
+    int maxStopCount,
+    DataOverlayContext dataOverlayContext,
+    boolean useStreets,
+    AccessEgressCacheService cacheService
+  ) {
     this.transitService = transitService;
     this.dataOverlayContext = dataOverlayContext;
     this.useStreets = useStreets;
     this.durationLimit = durationLimit;
     this.maxStopCount = maxStopCount;
+    this.cacheService = cacheService;
 
     if (!useStreets) {
       // We need to accommodate straight line distance (in meters) but when streets are present we
@@ -299,6 +321,25 @@ public class NearbyStopFinder {
     RouteRequest request,
     StreetRequest streetRequest
   ) {
+    return findNearbyStopsViaStreetsWithCaching(
+      originVertices,
+      reverseDirection,
+      request,
+      streetRequest,
+      durationLimit
+    );
+  }
+
+  /**
+   * Internal method that handles caching for street searches.
+   */
+  private List<NearbyStop> findNearbyStopsViaStreetsWithCaching(
+    Set<Vertex> originVertices,
+    boolean reverseDirection,
+    RouteRequest request,
+    StreetRequest streetRequest,
+    Duration duration
+  ) {
     OTPRequestTimeoutException.checkForTimeout();
 
     List<NearbyStop> stopsFound = createDirectlyConnectedStops(
@@ -313,9 +354,67 @@ public class NearbyStopFinder {
       return stopsFound;
     }
 
+    // Check cache for single-vertex searches (most common case)
+    if (originVertices.size() == 1 && cacheService != null && cacheService.isEnabled()) {
+      Vertex firstVertex = originVertices.iterator().next();
+      AccessEgressCacheKey cacheKey = new AccessEgressCacheKey(
+        firstVertex.getCoordinate(),
+        streetRequest.mode(),
+        duration,
+        maxStopCount,
+        reverseDirection,
+        request.preferences().walk()
+      );
+
+      List<NearbyStop> cachedResult = cacheService.get(cacheKey);
+      if (cachedResult != null) {
+        // Add directly connected stops to cached result
+        List<NearbyStop> result = new ArrayList<>(stopsFound);
+        result.addAll(cachedResult);
+        return result;
+      }
+
+      // Cache miss - perform search and cache result
+      List<NearbyStop> searchResult = performStreetSearch(
+        originVertices,
+        reverseDirection,
+        request,
+        streetRequest,
+        duration
+      );
+
+      // Cache only the stops found via street search (excluding directly connected stops)
+      List<NearbyStop> stopsToCache = new ArrayList<>(searchResult);
+      stopsToCache.removeAll(stopsFound);
+      cacheService.put(cacheKey, stopsToCache);
+
+      return searchResult;
+    }
+
+    // For multi-vertex searches or when caching is disabled, perform search directly
+    return performStreetSearch(originVertices, reverseDirection, request, streetRequest, duration);
+  }
+
+  /**
+   * Performs the actual street search without caching.
+   */
+  private List<NearbyStop> performStreetSearch(
+    Set<Vertex> originVertices,
+    boolean reverseDirection,
+    RouteRequest request,
+    StreetRequest streetRequest,
+    Duration duration
+  ) {
+    List<NearbyStop> stopsFound = createDirectlyConnectedStops(
+      originVertices,
+      reverseDirection,
+      request,
+      streetRequest
+    );
+
     ShortestPathTree<State, Edge, Vertex> spt = StreetSearchBuilder
       .of()
-      .setSkipEdgeStrategy(getSkipEdgeStrategy())
+      .setSkipEdgeStrategy(getSkipEdgeStrategy(duration))
       .setDominanceFunction(new DominanceFunctions.MinimumWeight())
       .setRequest(request)
       .setArriveBy(reverseDirection)
@@ -375,19 +474,22 @@ public class NearbyStopFinder {
         stopsFound.add(NearbyStop.nearbyStopForState(min, areaStop));
       }
     }
+    
     if (stopsFound.isEmpty()) {
-      Duration newDurationLimit = durationLimit.multipliedBy(2);
-      LOG.debug(
-        "No stops found increasing maxDuration for walk to: {}", newDurationLimit.toString()
-      );
-      stopsFound =
-        findNearbyStopsViaStreets(
+      Duration maxDuration = Duration.ofHours(3);
+      if (duration.compareTo(maxDuration) < 0) {
+        Duration newDurationLimit = duration.multipliedBy(2);
+        LOG.debug(
+          "No stops found increasing maxDuration for walk to: {}", newDurationLimit.toString()
+        );
+        stopsFound = findNearbyStopsViaStreetsWithCaching(
           originVertices,
           reverseDirection,
           request,
           streetRequest,
           newDurationLimit
         );
+      }
     }
     return stopsFound;
   }
@@ -475,5 +577,32 @@ public class NearbyStopFinder {
    */
   public static boolean hasReachedStop(State state) {
     return state.getVertex() instanceof TransitStopVertex && state.isFinal();
+  }
+
+  /**
+   * Gets the cache service used by this NearbyStopFinder.
+   *
+   * @return the cache service
+   */
+  public AccessEgressCacheService getCacheService() {
+    return cacheService;
+  }
+
+  /**
+   * Clears the cache if caching is enabled.
+   */
+  public void clearCache() {
+    if (cacheService != null) {
+      cacheService.clear();
+    }
+  }
+
+  /**
+   * Logs cache statistics if caching is enabled.
+   */
+  public void logCacheStats() {
+    if (cacheService != null) {
+      cacheService.logStats();
+    }
   }
 }
