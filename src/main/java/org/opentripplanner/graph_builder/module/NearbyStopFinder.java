@@ -38,10 +38,13 @@ import org.opentripplanner.street.search.request.StreetSearchRequest;
 import org.opentripplanner.street.search.request.StreetSearchRequestMapper;
 import org.opentripplanner.street.search.state.State;
 import org.opentripplanner.street.search.strategy.DominanceFunctions;
+import org.opentripplanner.transit.model.basic.TransitMode;
 import org.opentripplanner.transit.model.network.TripPattern;
 import org.opentripplanner.transit.model.site.AreaStop;
 import org.opentripplanner.transit.model.site.RegularStop;
+import org.opentripplanner.transit.model.site.Station;
 import org.opentripplanner.transit.model.site.StopLocation;
+import org.opentripplanner.transit.model.site.StopLocationsGroup;
 import org.opentripplanner.transit.service.TransitService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,6 +222,7 @@ public class NearbyStopFinder {
 
     // Only used if OTPFeature.FlexRouting.isOn()
     Multimap<AreaStop, State> locationsMap = ArrayListMultimap.create();
+    Set<TransitMode> allowedTransitModes = request.getTransitModes();
 
     Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
     if (spt != null) {
@@ -227,10 +231,12 @@ public class NearbyStopFinder {
         Vertex targetVertex = state.getVertex();
         if (originVertices.contains(targetVertex)) continue;
         if (targetVertex instanceof TransitStopVertex tsv && state.isFinal()) {
-          if (state.containsOnlyWalkMode()) {
-            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
-          } else {
-            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+          if (checkIfStopModeMatchesRequestMode(tsv.getStop(), allowedTransitModes)) {
+            if (state.containsOnlyWalkMode()) {
+              stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
+            } else {
+              stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+            }
           }
         }
         if (
@@ -327,6 +333,7 @@ public class NearbyStopFinder {
 
     // Only used if OTPFeature.FlexRouting.isOn()
     Multimap<AreaStop, State> locationsMap = ArrayListMultimap.create();
+    Set<TransitMode> allowedTransitModes = request.getTransitModes();
 
     Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
     if (spt != null) {
@@ -335,10 +342,12 @@ public class NearbyStopFinder {
         Vertex targetVertex = state.getVertex();
         if (originVertices.contains(targetVertex)) continue;
         if (targetVertex instanceof TransitStopVertex tsv && state.isFinal()) {
-          if (state.containsOnlyWalkMode()) {
-            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
-          } else {
-            stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+          if (checkIfStopModeMatchesRequestMode(tsv.getStop(), allowedTransitModes)) {
+            if (state.containsOnlyWalkMode()) {
+              stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
+            } else {
+              stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
+            }
           }
         }
         if (
@@ -476,4 +485,26 @@ public class NearbyStopFinder {
   public static boolean hasReachedStop(State state) {
     return state.getVertex() instanceof TransitStopVertex && state.isFinal();
   }
+
+  private boolean checkIfStopModeMatchesRequestMode(StopLocation stopLocation, Set<TransitMode> allowedTransitModes) {
+    List<TransitMode> modesServingStop = getStopModes(stopLocation);
+    return !Collections.disjoint(modesServingStop, allowedTransitModes);
+  }
+
+  private List<TransitMode> getStopModes(StopLocation stop) {
+    List<TransitMode> directModes = transitService.getModesOfStopLocation(stop);
+    if (!directModes.isEmpty()) {
+      return directModes;
+    }
+    if (stop instanceof Station station) {
+      return transitService.getModesOfStopLocationsGroup(station);
+    }
+
+    if (stop instanceof StopLocationsGroup group) {
+      return transitService.getModesOfStopLocationsGroup(group);
+    }
+
+    return List.of();
+  }
+
 }

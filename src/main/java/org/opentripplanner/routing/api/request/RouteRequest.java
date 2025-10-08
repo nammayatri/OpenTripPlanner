@@ -9,22 +9,31 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.opentripplanner.framework.collection.ListSection;
 import org.opentripplanner.framework.time.DateUtils;
 import org.opentripplanner.framework.tostring.ToStringBuilder;
 import org.opentripplanner.model.GenericLocation;
+import org.opentripplanner.model.modes.ExcludeAllTransitFilter;
 import org.opentripplanner.model.plan.SortOrder;
 import org.opentripplanner.model.plan.paging.cursor.PageCursor;
 import org.opentripplanner.routing.api.request.preference.RoutingPreferences;
 import org.opentripplanner.routing.api.request.request.JourneyRequest;
+import org.opentripplanner.routing.api.request.request.filter.AllowAllTransitFilter;
+import org.opentripplanner.routing.api.request.request.filter.SelectRequest;
+import org.opentripplanner.routing.api.request.request.filter.TransitFilter;
+import org.opentripplanner.routing.api.request.request.filter.TransitFilterRequest;
 import org.opentripplanner.routing.api.response.InputField;
 import org.opentripplanner.routing.api.response.RoutingError;
 import org.opentripplanner.routing.api.response.RoutingErrorCode;
 import org.opentripplanner.routing.error.RoutingValidationException;
+import org.opentripplanner.transit.model.basic.MainAndSubMode;
+import org.opentripplanner.transit.model.basic.TransitMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -415,6 +424,30 @@ public class RouteRequest implements Cloneable, Serializable {
 
   public Boolean getNoOptimization(){
     return this.noOptimization;
+  }
+
+  /**
+   *  Returns the TransitModes passed by the user in the transportModes
+   */
+  public Set<TransitMode> getTransitModes() {
+    Set<TransitMode> transitModes = new HashSet<>();
+    List<TransitFilter> transitFilters = journey().transit().filters();
+    for (TransitFilter transitFilter : transitFilters) {
+      if (transitFilter instanceof TransitFilterRequest transitFilterRequest) {
+        List<SelectRequest> selectRequests = transitFilterRequest.select();
+        for(SelectRequest selectRequest: selectRequests) {
+          List<MainAndSubMode> mainAndSubModes = selectRequest.transportModes();
+          for(MainAndSubMode mainAndSubMode: mainAndSubModes) {
+            transitModes.add(mainAndSubMode.mainMode());
+          }
+        }
+      } else if (transitFilter instanceof AllowAllTransitFilter) {
+        return Set.of(TransitMode.values());
+      } else if (transitFilter instanceof ExcludeAllTransitFilter) {
+        return Set.of();
+      }
+    }
+    return transitModes;
   }
 
   public String toString() {
