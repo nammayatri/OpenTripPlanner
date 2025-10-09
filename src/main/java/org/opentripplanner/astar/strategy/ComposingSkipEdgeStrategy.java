@@ -13,6 +13,12 @@ public record ComposingSkipEdgeStrategy<
   State extends AStarState<State, Edge, ?>, Edge extends AStarEdge<State, Edge, ?>
 >(SkipEdgeStrategy<State, Edge>... strategies)
   implements SkipEdgeStrategy<State, Edge> {
+
+  @SafeVarargs
+  public ComposingSkipEdgeStrategy {
+
+  }
+
   @Override
   public boolean shouldSkipEdge(State current, Edge edge) {
     for (var strategy : strategies) {

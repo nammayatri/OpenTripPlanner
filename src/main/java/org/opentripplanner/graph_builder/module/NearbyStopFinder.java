@@ -210,7 +210,7 @@ public class NearbyStopFinder {
 
     ShortestPathTree<State, Edge, Vertex> spt = StreetSearchBuilder
       .of()
-      .setSkipEdgeStrategy(getSkipEdgeStrategy(duration))
+      .setSkipEdgeStrategy(getSkipEdgeStrategy(duration, request, transitService))
       .setDominanceFunction(new DominanceFunctions.MinimumWeight())
       .setRequest(request)
       .setArriveBy(reverseDirection)
@@ -273,10 +273,10 @@ public class NearbyStopFinder {
         stopsFound.add(NearbyStop.nearbyStopForState(min, areaStop));
       }
     }
-    Duration maxDuration = Duration.ofHours(3);
+    Duration maxDuration = Duration.ofHours(12);
     if (stopsFound.isEmpty() && duration.compareTo(maxDuration) < 0) {
       Duration newDurationLimit = duration.multipliedBy(2);
-      LOG.debug(
+      LOG.info(
         "No stops found increasing maxDuration for walk to {}", newDurationLimit.toString()
       );
       stopsFound =
@@ -321,7 +321,7 @@ public class NearbyStopFinder {
 
     ShortestPathTree<State, Edge, Vertex> spt = StreetSearchBuilder
       .of()
-      .setSkipEdgeStrategy(getSkipEdgeStrategy())
+      .setSkipEdgeStrategy(getSkipEdgeStrategy(null, request, transitService))
       .setDominanceFunction(new DominanceFunctions.MinimumWeight())
       .setRequest(request)
       .setArriveBy(reverseDirection)
@@ -401,6 +401,8 @@ public class NearbyStopFinder {
     return stopsFound;
   }
 
+
+
   private List<NearbyStop> findNearbyStopsViaDirectTransfers(Vertex vertex) {
     // It makes sense for the directGraphFinder to use meters as a limit, so we convert first
     double limitMeters = durationLimit.toSeconds() * WalkPreferences.DEFAULT.speed();
@@ -408,21 +410,12 @@ public class NearbyStopFinder {
     return directGraphFinder.findClosestStops(c0, limitMeters);
   }
 
-  private SkipEdgeStrategy<State, Edge> getSkipEdgeStrategy() {
-    var durationSkipEdgeStrategy = new DurationSkipEdgeStrategy(durationLimit);
+  private SkipEdgeStrategy<State, Edge> getSkipEdgeStrategy(Duration duration, RouteRequest routeRequest, TransitService transitService) {
+    var durationLimitToUse = duration != null ? duration : durationLimit;
+    var durationSkipEdgeStrategy = new DurationSkipEdgeStrategy<State, Edge>(durationLimitToUse);
 
     if (maxStopCount > 0) {
-      var strategy = new MaxCountSkipEdgeStrategy<>(maxStopCount, NearbyStopFinder::hasReachedStop);
-      return new ComposingSkipEdgeStrategy<>(strategy, durationSkipEdgeStrategy);
-    }
-    return durationSkipEdgeStrategy;
-  }
-
-  private SkipEdgeStrategy<State, Edge> getSkipEdgeStrategy(Duration duration) {
-    var durationSkipEdgeStrategy = new DurationSkipEdgeStrategy(duration);
-
-    if (maxStopCount > 0) {
-      var strategy = new MaxCountSkipEdgeStrategy<>(maxStopCount, NearbyStopFinder::hasReachedStop);
+      var strategy = new MaxCountSkipEdgeStrategy<State, Edge>(maxStopCount, (s -> hasReachedStop(s, routeRequest, transitService)));
       return new ComposingSkipEdgeStrategy<>(strategy, durationSkipEdgeStrategy);
     }
     return durationSkipEdgeStrategy;
@@ -486,25 +479,21 @@ public class NearbyStopFinder {
     return state.getVertex() instanceof TransitStopVertex && state.isFinal();
   }
 
+  public static boolean hasReachedStop(State state, RouteRequest routeRequest, TransitService transitService) {
+    if (state.getVertex() instanceof  TransitStopVertex tsv && state.isFinal()){
+      List<TransitMode> stopModes = transitService.getModesOfStopLocation(tsv.getStop());
+      Set<TransitMode> allowedModes = routeRequest.getTransitModes();
+      return !Collections.disjoint(stopModes, allowedModes);
+    }
+    return false;
+  }
+
   private boolean checkIfStopModeMatchesRequestMode(StopLocation stopLocation, Set<TransitMode> allowedTransitModes) {
     List<TransitMode> modesServingStop = getStopModes(stopLocation);
     return !Collections.disjoint(modesServingStop, allowedTransitModes);
   }
 
   private List<TransitMode> getStopModes(StopLocation stop) {
-    List<TransitMode> directModes = transitService.getModesOfStopLocation(stop);
-    if (!directModes.isEmpty()) {
-      return directModes;
-    }
-    if (stop instanceof Station station) {
-      return transitService.getModesOfStopLocationsGroup(station);
-    }
-
-    if (stop instanceof StopLocationsGroup group) {
-      return transitService.getModesOfStopLocationsGroup(group);
-    }
-
-    return List.of();
+    return transitService.getModesOfStopLocation(stop);
   }
-
 }
