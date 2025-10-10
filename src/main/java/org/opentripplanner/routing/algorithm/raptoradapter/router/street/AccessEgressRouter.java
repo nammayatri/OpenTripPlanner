@@ -51,7 +51,8 @@ public class AccessEgressRouter {
       fromTarget ? verticesContainer.getToVertices() : verticesContainer.getFromVertices(),
       fromTarget,
       request,
-      streetRequest
+      streetRequest,
+      null
     );
 
     LOG.debug("Found {} {} stops", nearbyStopList.size(), fromTarget ? "egress" : "access");

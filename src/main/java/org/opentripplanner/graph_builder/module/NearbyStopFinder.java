@@ -172,7 +172,8 @@ public class NearbyStopFinder {
         Set.of(vertex),
         reverseDirection,
         routingRequest,
-        streetRequest
+        streetRequest,
+        null
       );
     } else {
       return findNearbyStopsViaDirectTransfers(vertex);
@@ -196,6 +197,7 @@ public class NearbyStopFinder {
     Duration duration
   ) {
     OTPRequestTimeoutException.checkForTimeout();
+    Duration durationToUse = duration != null ? duration : durationLimit;
 
     List<NearbyStop> stopsFound = createDirectlyConnectedStops(
       originVertices,
@@ -210,7 +212,7 @@ public class NearbyStopFinder {
 
     ShortestPathTree<State, Edge, Vertex> spt = StreetSearchBuilder
       .of()
-      .setSkipEdgeStrategy(getSkipEdgeStrategy(duration, request, transitService))
+      .setSkipEdgeStrategy(getSkipEdgeStrategy(durationToUse, request, transitService))
       .setDominanceFunction(new DominanceFunctions.MinimumWeight())
       .setRequest(request)
       .setArriveBy(reverseDirection)
@@ -274,8 +276,8 @@ public class NearbyStopFinder {
       }
     }
     Duration maxDuration = Duration.ofHours(12);
-    if (stopsFound.isEmpty() && duration.compareTo(maxDuration) < 0) {
-      Duration newDurationLimit = duration.multipliedBy(2);
+    if (stopsFound.isEmpty() && durationToUse.compareTo(maxDuration) < 0) {
+      Duration newDurationLimit = durationToUse.multipliedBy(2);
       LOG.info(
         "No stops found increasing maxDuration for walk to {}", newDurationLimit.toString()
       );
@@ -290,118 +292,6 @@ public class NearbyStopFinder {
     }
     return stopsFound;
   }
-
-  /**
-   * Return all stops within a certain radius of the given vertex, using network distance along
-   * streets. If the origin vertex is a StopVertex, the result will include it.
-   *
-   * @param originVertices   the origin point of the street search
-   * @param reverseDirection if true the paths returned instead originate at the nearby stops and
-   *                         have the originVertex as the destination
-   */
-  public List<NearbyStop> findNearbyStopsViaStreets(
-    Set<Vertex> originVertices,
-    boolean reverseDirection,
-    RouteRequest request,
-    StreetRequest streetRequest
-  ) {
-    OTPRequestTimeoutException.checkForTimeout();
-
-    List<NearbyStop> stopsFound = createDirectlyConnectedStops(
-      originVertices,
-      reverseDirection,
-      request,
-      streetRequest
-    );
-
-    // Return only the origin vertices if there are no valid street modes
-    if (streetRequest.mode() == StreetMode.NOT_SET) {
-      return stopsFound;
-    }
-
-    ShortestPathTree<State, Edge, Vertex> spt = StreetSearchBuilder
-      .of()
-      .setSkipEdgeStrategy(getSkipEdgeStrategy(null, request, transitService))
-      .setDominanceFunction(new DominanceFunctions.MinimumWeight())
-      .setRequest(request)
-      .setArriveBy(reverseDirection)
-      .setStreetRequest(streetRequest)
-      .setFrom(reverseDirection ? null : originVertices)
-      .setTo(reverseDirection ? originVertices : null)
-      .setDataOverlayContext(dataOverlayContext)
-      .getShortestPathTree();
-
-    // Only used if OTPFeature.FlexRouting.isOn()
-    Multimap<AreaStop, State> locationsMap = ArrayListMultimap.create();
-    Set<TransitMode> allowedTransitModes = request.getTransitModes();
-
-    Vertex firstVertex = new ArrayList<>(originVertices).getFirst();
-    if (spt != null) {
-      // TODO use GenericAStar and a traverseVisitor? Add an earliestArrival switch to genericAStar?
-      for (State state : spt.getAllStates()) {
-        Vertex targetVertex = state.getVertex();
-        if (originVertices.contains(targetVertex)) continue;
-        if (targetVertex instanceof TransitStopVertex tsv && state.isFinal()) {
-          if (checkIfStopModeMatchesRequestMode(tsv.getStop(), allowedTransitModes)) {
-            if (state.containsOnlyWalkMode()) {
-              stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop(), firstVertex));
-            } else {
-              stopsFound.add(NearbyStop.nearbyStopForState(state, tsv.getStop()));
-            }
-          }
-        }
-        if (
-          OTPFeature.FlexRouting.isOn() &&
-          targetVertex instanceof StreetVertex streetVertex && !streetVertex.areaStops().isEmpty()
-        ) {
-          for (AreaStop areaStop : ((StreetVertex) targetVertex).areaStops()) {
-            // This is for a simplification, so that we only return one vertex from each
-            // stop location. All vertices are added to the multimap, which is filtered
-            // below, so that only the closest vertex is added to stopsFound
-            if (canBoardFlex(state, reverseDirection)) {
-              locationsMap.put(areaStop, state);
-            }
-          }
-        }
-      }
-    }
-
-    if (OTPFeature.FlexRouting.isOn()) {
-      for (var locationStates : locationsMap.asMap().entrySet()) {
-        AreaStop areaStop = locationStates.getKey();
-        Collection<State> states = locationStates.getValue();
-        // Select the vertex from all vertices that are reachable per AreaStop by taking
-        // the minimum walking distance
-        State min = Collections.min(states, Comparator.comparing(State::getWeight));
-
-        // If the best state for this AreaStop is a SplitterVertex, we want to get the
-        // TemporaryStreetLocation instead. This allows us to reach SplitterVertices in both
-        // directions when routing later.
-        if (min.getBackState().getVertex() instanceof TemporaryStreetLocation) {
-          min = min.getBackState();
-        }
-
-        stopsFound.add(NearbyStop.nearbyStopForState(min, areaStop));
-      }
-    }
-    if (stopsFound.isEmpty()) {
-      Duration newDurationLimit = durationLimit.multipliedBy(2);
-      LOG.debug(
-        "No stops found increasing maxDuration for walk to: {}", newDurationLimit.toString()
-      );
-      stopsFound =
-        findNearbyStopsViaStreets(
-          originVertices,
-          reverseDirection,
-          request,
-          streetRequest,
-          newDurationLimit
-        );
-    }
-    return stopsFound;
-  }
-
-
 
   private List<NearbyStop> findNearbyStopsViaDirectTransfers(Vertex vertex) {
     // It makes sense for the directGraphFinder to use meters as a limit, so we convert first
