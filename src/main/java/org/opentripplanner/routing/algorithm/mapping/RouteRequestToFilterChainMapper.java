@@ -91,7 +91,7 @@ public class RouteRequestToFilterChainMapper {
       .withSearchWindow(earliestDepartureTimeUsed, searchWindowUsed)
       .withPageCursorInputSubscriber(pageCursorInputSubscriber)
       .withRemoveWalkAllTheWayResults(removeWalkAllTheWayResults)
-      .withRemoveTransitIfWalkingIsBetter(true)
+      .withRemoveTransitIfWalkingIsBetter(false)
       .withDebugEnabled(params.debug());
 
     var fareService = context.graph().getFareService();
