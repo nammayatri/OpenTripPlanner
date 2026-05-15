@@ -33,8 +33,7 @@ public class StopMapper {
     api.code = domain.getCode();
     api.name = domain.getName().toString();
     if (extended) {
-      String desc = domain.getDescription() != null ? domain.getDescription().toString() : null;
-      api.desc = desc;
+      api.desc = I18NStringMapper.mapToApi(domain.getDescription(), null);
       api.zoneId = domain.getFirstZoneAsString();
       api.url = I18NStringMapper.mapToApi(domain.getUrl(), null);
       api.locationType = 0;
@@ -64,6 +63,7 @@ public class StopMapper {
     // parentStation may be missing on the stop returning null.
     // TODO harmonize these names, maybe use "station" everywhere
     api.cluster = mapToParentStationOldId(domain);
+    api.desc = I18NStringMapper.mapToApi(domain.getDescription(), null);
 
     return api;
   }
