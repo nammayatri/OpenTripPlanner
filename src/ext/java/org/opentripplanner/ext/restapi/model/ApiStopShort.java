@@ -27,7 +27,7 @@ public class ApiStopShort {
    * omitted from JSON in that case via {@link JsonInclude}.
    */
   @JsonInclude(Include.NON_NULL)
-  public String desc;
+  public String info_json;
 
   /** Distance to the stop when it is returned from a location-based query. */
   @JsonInclude(Include.NON_NULL)
