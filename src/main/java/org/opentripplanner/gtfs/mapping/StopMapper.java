@@ -21,15 +21,26 @@ class StopMapper {
   private final StopModelBuilder stopModelBuilder;
   private final TranslationHelper translationHelper;
   private final Function<FeedScopedId, Station> stationLookUp;
+  private final Map<String, String> infoJsonByStopId;
 
   StopMapper(
     TranslationHelper translationHelper,
     Function<FeedScopedId, Station> stationLookUp,
     StopModelBuilder stopModelBuilder
   ) {
+    this(translationHelper, stationLookUp, stopModelBuilder, Map.of());
+  }
+
+  StopMapper(
+    TranslationHelper translationHelper,
+    Function<FeedScopedId, Station> stationLookUp,
+    StopModelBuilder stopModelBuilder,
+    Map<String, String> infoJsonByStopId
+  ) {
     this.translationHelper = translationHelper;
     this.stationLookUp = stationLookUp;
     this.stopModelBuilder = stopModelBuilder;
+    this.infoJsonByStopId = infoJsonByStopId;
   }
 
   Collection<RegularStop> map(Collection<org.onebusaway.gtfs.model.Stop> allStops) {
@@ -92,6 +103,11 @@ class StopMapper {
 
     if (gtfsStop.getParentStation() != null) {
       builder.withParentStation(stationLookUp.apply(base.getParentStationId()));
+    }
+
+    String infoJson = infoJsonByStopId.get(base.getId().getId());
+    if (infoJson != null) {
+      builder.withInfoJson(infoJson);
     }
 
     return builder.build();

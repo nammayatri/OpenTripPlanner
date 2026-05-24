@@ -34,6 +34,8 @@ public final class RegularStop
 
   private final SubMode netexVehicleSubmode;
 
+  private final String infoJson;
+
   private final Set<BoardingArea> boardingAreas;
 
   private final Set<FareZone> fareZones;
@@ -46,6 +48,7 @@ public final class RegularStop
     this.timeZone = builder.timeZone();
     this.gtfsVehicleType = builder.vehicleType();
     this.netexVehicleSubmode = SubMode.getOrBuildAndCacheForever(builder.netexVehicleSubmode());
+    this.infoJson = builder.infoJson();
     this.boardingAreas = setOfNullSafe(builder.boardingAreas());
     this.fareZones = setOfNullSafe(builder.fareZones());
     if (isPartOfStation()) {
@@ -114,6 +117,12 @@ public final class RegularStop
   }
 
   @Override
+  @Nullable
+  public String getInfoJson() {
+    return infoJson;
+  }
+
+  @Override
   @Nonnull
   public Point getGeometry() {
     return GeometryUtils.getGeometryFactory().createPoint(getCoordinate().asJtsCoordinate());
@@ -156,6 +165,7 @@ public final class RegularStop
       Objects.equals(timeZone, other.timeZone) &&
       Objects.equals(gtfsVehicleType, other.gtfsVehicleType) &&
       Objects.equals(netexVehicleSubmode, other.netexVehicleSubmode) &&
+      Objects.equals(infoJson, other.infoJson) &&
       Objects.equals(boardingAreas, other.boardingAreas) &&
       Objects.equals(fareZones, other.fareZones)
     );

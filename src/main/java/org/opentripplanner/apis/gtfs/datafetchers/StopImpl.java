@@ -242,6 +242,11 @@ public class StopImpl implements GraphQLDataFetchers.GraphQLStop {
   }
 
   @Override
+  public DataFetcher<String> infoJson() {
+    return environment -> getValue(environment, StopLocation::getInfoJson, station -> null);
+  }
+
+  @Override
   public DataFetcher<Iterable<Route>> routes() {
     return this::getRoutes;
   }

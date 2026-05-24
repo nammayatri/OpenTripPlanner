@@ -42,6 +42,7 @@ import org.opentripplanner.graph_builder.module.geometry.GeometryProcessor;
 import org.opentripplanner.gtfs.GenerateTripPatternsOperation;
 import org.opentripplanner.gtfs.interlining.InterlineProcessor;
 import org.opentripplanner.gtfs.mapping.GTFSToOtpTransitServiceMapper;
+import org.opentripplanner.gtfs.mapping.InfoJsonStopReader;
 import org.opentripplanner.model.OtpTransitService;
 import org.opentripplanner.model.TripStopTimes;
 import org.opentripplanner.model.calendar.CalendarServiceData;
@@ -131,13 +132,16 @@ public class GtfsModule implements GraphBuilderModule {
 
         feedIdsEncountered.put(feedId, gtfsBundle);
 
+        Map<String, String> infoJsonByStopId = InfoJsonStopReader.read(gtfsBundle.getCsvInputSource());
+
         GTFSToOtpTransitServiceMapper mapper = new GTFSToOtpTransitServiceMapper(
           new OtpTransitServiceBuilder(transitModel.getStopModel(), issueStore),
           feedId,
           issueStore,
           gtfsBundle.discardMinTransferTimes(),
           gtfsDao,
-          gtfsBundle.stationTransferPreference()
+          gtfsBundle.stationTransferPreference(),
+          infoJsonByStopId
         );
         mapper.mapStopTripAndRouteDataIntoBuilder();
 

@@ -44,6 +44,16 @@ public interface StopLocation extends LogInfo {
   @Nullable
   I18NString getUrl();
 
+  /**
+   * Raw value of the non-standard {@code info_json} column in stops.txt, populated by the
+   * side-channel reader in {@code GtfsModule}. Clients are expected to parse the JSON
+   * themselves. Returns null if the column or value is absent.
+   */
+  @Nullable
+  default String getInfoJson() {
+    return null;
+  }
+
   @Nonnull
   StopType getStopType();
 

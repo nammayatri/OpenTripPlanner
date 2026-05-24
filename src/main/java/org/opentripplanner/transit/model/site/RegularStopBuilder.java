@@ -30,6 +30,8 @@ public final class RegularStopBuilder
 
   private String netexVehicleSubmode;
 
+  private String infoJson;
+
   private final Set<BoardingArea> boardingAreas = new HashSet<>();
 
   private final Set<FareZone> fareZones = new HashSet<>();
@@ -47,6 +49,7 @@ public final class RegularStopBuilder
     this.timeZone = original.getTimeZone();
     this.gtfsVehicleType = original.getGtfsVehicleType();
     this.netexVehicleSubmode = original.getNetexVehicleSubmode().name();
+    this.infoJson = original.getInfoJson();
   }
 
   public String platformCode() {
@@ -82,6 +85,15 @@ public final class RegularStopBuilder
 
   public RegularStopBuilder withNetexVehicleSubmode(String netexVehicleSubmode) {
     this.netexVehicleSubmode = netexVehicleSubmode;
+    return this;
+  }
+
+  public String infoJson() {
+    return infoJson;
+  }
+
+  public RegularStopBuilder withInfoJson(String infoJson) {
+    this.infoJson = infoJson;
     return this;
   }
 
