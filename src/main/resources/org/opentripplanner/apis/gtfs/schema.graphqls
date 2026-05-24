@@ -3703,6 +3703,12 @@ type Stop implements Node & PlaceInterface {
     """
     platformCode: String
 
+    """
+    Raw value of the non-standard `info_json` column from stops.txt. Clients are expected to
+    parse the JSON themselves. Null when the column or value is absent.
+    """
+    infoJson: String
+
     """The cluster which this stop is part of"""
     cluster: Cluster
 

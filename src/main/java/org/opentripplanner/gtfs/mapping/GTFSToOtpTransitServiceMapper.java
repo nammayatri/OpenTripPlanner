@@ -7,6 +7,7 @@ import static org.onebusaway.gtfs.model.Stop.LOCATION_TYPE_STATION;
 import static org.onebusaway.gtfs.model.Stop.LOCATION_TYPE_STOP;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.function.Function;
 import org.onebusaway.gtfs.services.GtfsRelationalDao;
 import org.opentripplanner.ext.fares.model.FareRulesData;
@@ -94,6 +95,26 @@ public class GTFSToOtpTransitServiceMapper {
     GtfsRelationalDao data,
     StopTransferPriority stationTransferPreference
   ) {
+    this(
+      builder,
+      feedId,
+      issueStore,
+      discardMinTransferTimes,
+      data,
+      stationTransferPreference,
+      Map.of()
+    );
+  }
+
+  public GTFSToOtpTransitServiceMapper(
+    OtpTransitServiceBuilder builder,
+    String feedId,
+    DataImportIssueStore issueStore,
+    boolean discardMinTransferTimes,
+    GtfsRelationalDao data,
+    StopTransferPriority stationTransferPreference,
+    Map<String, String> infoJsonByStopId
+  ) {
     this.issueStore = issueStore;
     this.builder = builder;
     // Create callbacks for mappers to retrieve stop and stations
@@ -106,7 +127,7 @@ public class GTFSToOtpTransitServiceMapper {
     feedInfoMapper = new FeedInfoMapper(feedId);
     agencyMapper = new AgencyMapper(feedId);
     stationMapper = new StationMapper(translationHelper, stationTransferPreference);
-    stopMapper = new StopMapper(translationHelper, stationLookup, builder.stopModel());
+    stopMapper = new StopMapper(translationHelper, stationLookup, builder.stopModel(), infoJsonByStopId);
     entranceMapper = new EntranceMapper(translationHelper, stationLookup);
     pathwayNodeMapper = new PathwayNodeMapper(translationHelper, stationLookup);
     boardingAreaMapper = new BoardingAreaMapper(translationHelper, stopLookup);

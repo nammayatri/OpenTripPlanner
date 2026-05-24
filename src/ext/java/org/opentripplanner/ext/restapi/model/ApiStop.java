@@ -1,6 +1,8 @@
 /* This file is based on code copied from project OneBusAway, see the LICENSE file for further information. */
 package org.opentripplanner.ext.restapi.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -15,6 +17,10 @@ public class ApiStop implements Serializable {
   public String zoneId;
   public String url;
   public Integer locationType;
+
+  /** Raw value of the non-standard {@code info_json} column from stops.txt. */
+  @JsonInclude(Include.NON_NULL)
+  public String info_json;
 
   /** The fully qualified parent station id including the feedId. */
   public String stationId;

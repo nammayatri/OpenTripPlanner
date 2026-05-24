@@ -22,9 +22,9 @@ public class ApiStopShort {
   public String cluster;
 
   /**
-   * Stop description (GTFS stop_desc), resolved via the I18NStringMapper with a
-   * null locale (default-locale fallback). Null when the source has no description;
-   * omitted from JSON in that case via {@link JsonInclude}.
+   * Raw value of the non-standard {@code info_json} column from stops.txt. Clients are
+   * expected to parse the JSON. Null when the column or value is absent; omitted from JSON
+   * in that case via {@link JsonInclude}.
    */
   @JsonInclude(Include.NON_NULL)
   public String info_json;

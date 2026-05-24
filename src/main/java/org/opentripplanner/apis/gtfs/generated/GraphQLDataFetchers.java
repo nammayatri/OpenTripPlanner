@@ -609,6 +609,7 @@ public class GraphQLDataFetchers {
     public DataFetcher<Object> parentStation();
     public DataFetcher<Iterable<TripPattern>> patterns();
     public DataFetcher<String> platformCode();
+    public DataFetcher<String> infoJson();
     public DataFetcher<Iterable<Route>> routes();
     public DataFetcher<Iterable<TripTimeOnDate>> stopTimesForPattern();
     public DataFetcher<Iterable<Object>> stops();
