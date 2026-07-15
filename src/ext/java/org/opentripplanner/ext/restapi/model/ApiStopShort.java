@@ -26,8 +26,12 @@ public class ApiStopShort {
    * expected to parse the JSON. Null when the column or value is absent; omitted from JSON
    * in that case via {@link JsonInclude}.
    */
+
   @JsonInclude(Include.NON_NULL)
-  public String info_json;
+  public String desc;
+
+  @JsonInclude(Include.NON_NULL)
+  public String infoJson;
 
   /** Distance to the stop when it is returned from a location-based query. */
   @JsonInclude(Include.NON_NULL)
