@@ -20,7 +20,7 @@ public class ApiStop implements Serializable {
 
   /** Raw value of the non-standard {@code info_json} column from stops.txt. */
   @JsonInclude(Include.NON_NULL)
-  public String info_json;
+  public String infoJson;
 
   /** The fully qualified parent station id including the feedId. */
   public String stationId;
