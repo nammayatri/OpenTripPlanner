@@ -33,6 +33,9 @@ public class ApiStopShort {
   @JsonInclude(Include.NON_NULL)
   public String infoJson;
 
+  @JsonInclude(Include.NON_NULL)
+  public String headsign;
+
   /** Distance to the stop when it is returned from a location-based query. */
   @JsonInclude(Include.NON_NULL)
   public Integer dist;
