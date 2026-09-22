@@ -6,7 +6,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.opentripplanner.ext.restapi.model.ApiPatternDetail;
 import org.opentripplanner.ext.restapi.model.ApiPatternShort;
+import org.opentripplanner.ext.restapi.model.ApiStopShort;
+import org.opentripplanner.framework.i18n.I18NStringMapper;
 import org.opentripplanner.transit.model.network.TripPattern;
+import org.opentripplanner.transit.model.timetable.TripTimes;
 
 public class TripPatternMapper {
 
@@ -31,8 +34,26 @@ public class TripPatternMapper {
 
     ApiPatternDetail api = mapToApiShort(domain, ApiPatternDetail::new);
     api.stops = StopMapper.mapToApiShort(domain.getStops());
+    addHeadsigns(api.stops, domain.getScheduledTimetable().getRepresentativeTripTimes());
     api.trips = TripMapper.mapToApiShort(domain.scheduledTripsAsStream());
     return api;
+  }
+
+  private static void addHeadsigns(Collection<ApiStopShort> stops, TripTimes tripTimes) {
+    if (stops == null || tripTimes == null) {
+      return;
+    }
+    var tripHeadsign = tripTimes.getTrip().getHeadsign();
+    int i = 0;
+    for (ApiStopShort stop : stops) {
+      if (i >= tripTimes.getNumStops()) {
+        return;
+      }
+      var headsign = tripTimes.getHeadsign(i++);
+      if (headsign != null && !headsign.equals(tripHeadsign)) {
+        stop.headsign = I18NStringMapper.mapToApi(headsign, null);
+      }
+    }
   }
 
   private static <T extends ApiPatternShort> T mapToApiShort(
