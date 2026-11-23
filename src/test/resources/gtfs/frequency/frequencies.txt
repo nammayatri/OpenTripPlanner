@@ -1,0 +1,4 @@
+trip_id,start_time,end_time,headway_secs,exact_times
+T_EXACT,06:00:00,10:00:00,3600,1
+T_INEXACT,06:00:00,10:00:00,3600,0
+T_DWELL,06:00:00,09:01:00,3600,1

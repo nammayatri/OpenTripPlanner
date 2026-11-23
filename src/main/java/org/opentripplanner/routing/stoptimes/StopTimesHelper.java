@@ -22,6 +22,7 @@ import org.opentripplanner.model.TripTimeOnDate;
 import org.opentripplanner.transit.model.network.TripPattern;
 import org.opentripplanner.transit.model.site.StopLocation;
 import org.opentripplanner.transit.model.timetable.Trip;
+import org.opentripplanner.transit.model.timetable.FrequencyEntry;
 import org.opentripplanner.transit.model.timetable.TripTimes;
 import org.opentripplanner.transit.service.TransitService;
 
@@ -34,8 +35,6 @@ public class StopTimesHelper {
    * can visit the stop later than the current service date's services. This happens eg. with
    * sleeper trains.
    * <p>
-   * TODO: Add frequency based trips
-   *
    * @param stop                  Stop object to perform the search for
    * @param startTime             Start time for the search.
    * @param timeRange             Searches forward for timeRange from startTime
@@ -278,7 +277,97 @@ public class StopTimesHelper {
               );
             }
           }
-          // TODO Add back support for frequency entries
+
+          // Frequency-based trips carry a window plus a headway instead of a
+          // concrete schedule, so each departure has to be materialized here.
+          //
+          // Read the entries from the SCHEDULED timetable, not from `timetable`:
+          // the per-date copy constructor (Timetable(Timetable, LocalDate))
+          // copies tripTimes only, so a realtime snapshot has no frequency
+          // entries at all. Since a frequency trip cannot receive a TripUpdate
+          // (createUpdatedTripTimes resolves trips through tripTimes and fails
+          // with TRIP_NOT_FOUND_IN_PATTERN), the scheduled entries are always
+          // the live ones.
+          //
+          // Only exact_times=1 windows are expanded: exact_times=0 means the
+          // operator publishes a headway and no departure times, so listing
+          // times for it would invent a timetable that was never published.
+          for (FrequencyEntry freq : pattern.getScheduledTimetable().getFrequencyEntries()) {
+            if (!freq.exactTimes) {
+              continue;
+            }
+            // A non-positive headway would never advance the loop below.
+            if (freq.headway <= 0) {
+              continue;
+            }
+            if (!servicesRunning.contains(freq.tripTimes.getServiceCode())) {
+              continue;
+            }
+            if (skipByTripCancellation(freq.tripTimes, includeCancellations)) {
+              continue;
+            }
+            if (
+              !includeReplaced &&
+              isReplacedByAnotherPattern(
+                freq.tripTimes.getTrip(),
+                serviceDate,
+                pattern,
+                transitService
+              )
+            ) {
+              continue;
+            }
+
+            // Same convention as FrequencyEntry.nextDepartureTime: the window is
+            // expressed at the first stop, so shift it to the queried stop by the
+            // DEPARTURE offset, and treat its end as exclusive. Using the arrival
+            // offset here would cut the window short by the dwell at this stop.
+            int stopOffset =
+              freq.tripTimes.getDepartureTime(stopIndex) - freq.tripTimes.getDepartureTime(0);
+            int windowEndExclusive = freq.endTime + stopOffset;
+            int rangeEndInclusive = secondsSinceMidnight + timeRangeSeconds;
+
+            int departureTime = freq.nextDepartureTime(stopIndex, secondsSinceMidnight);
+            if (departureTime == -1) {
+              continue;
+            }
+
+            int emitted = 0;
+            while (
+              departureTime < windowEndExclusive &&
+              departureTime <= rangeEndInclusive &&
+              emitted < numberOfDepartures
+            ) {
+              // null for a trip carrying realtime updates; unreachable today
+              TripTimes materialized = freq.materialize(stopIndex, departureTime, true);
+              if (materialized != null) {
+                boolean departureTimeInRange =
+                  materialized.getDepartureTime(stopIndex) >= secondsSinceMidnight &&
+                  materialized.getDepartureTime(stopIndex) <= rangeEndInclusive;
+
+                boolean arrivalTimeInRange =
+                  materialized.getArrivalTime(stopIndex) >= secondsSinceMidnight &&
+                  materialized.getArrivalTime(stopIndex) <= rangeEndInclusive;
+
+                if (
+                  (arrivalDeparture != ARRIVALS && departureTimeInRange) ||
+                  (arrivalDeparture != DEPARTURES && arrivalTimeInRange)
+                ) {
+                  pq.add(
+                    new TripTimeOnDate(
+                      materialized,
+                      stopIndex,
+                      pattern,
+                      serviceDate,
+                      midnight.toInstant()
+                    )
+                  );
+                }
+              }
+              departureTime += freq.headway;
+              emitted++;
+            }
+          }
         }
       }
     }

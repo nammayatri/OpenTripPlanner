@@ -1,0 +1,7 @@
+trip_id,arrival_time,departure_time,stop_id,stop_sequence
+T_EXACT,00:00:00,00:00:00,FA,1
+T_EXACT,00:10:00,00:12:00,FB,2
+T_INEXACT,00:00:00,00:00:00,FA,1
+T_INEXACT,00:10:00,00:12:00,FB,2
+T_DWELL,00:00:00,00:00:00,FA,1
+T_DWELL,00:10:00,00:12:00,FB,2
