@@ -1,0 +1,4 @@
+route_id,service_id,trip_id,direction_id
+FR,alldays,T_EXACT,0
+FR,alldays,T_INEXACT,1
+FR,alldays,T_DWELL,0
